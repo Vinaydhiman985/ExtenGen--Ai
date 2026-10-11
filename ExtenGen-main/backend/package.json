@@ -11,6 +11,7 @@
     "mcp:stdio": "tsx src/mcp/stdio.ts",
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/scripts/seed.ts",
+    "eval": "tsx src/scripts/eval_recall.ts",
     "demo": "tsx src/scripts/demo.ts",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -31,7 +32,6 @@
     "@fastify/cors": "^10.0.2",
     "@fastify/sensible": "^6.0.3",
     "@modelcontextprotocol/sdk": "^1.6.1",
-    "@supabase/supabase-js": "^2.117.3",
     "bullmq": "^5.41.6",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
