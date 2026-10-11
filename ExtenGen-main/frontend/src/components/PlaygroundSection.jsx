@@ -3,7 +3,7 @@ import { recallContext, MOCK_RECALL_RESULTS } from "../services/api.js";
 
 export function PlaygroundSection() {
   const [query, setQuery] = useState("how do we handle invoice pagination and rate limits?");
-  const [threshold, setThreshold] = useState(0.30);
+  const [threshold, setThreshold] = useState(0.20);
   const [topK, setTopK] = useState(3);
   const [isExecuting, setIsExecuting] = useState(false);
   const [results, setResults] = useState(MOCK_RECALL_RESULTS);
