@@ -35,6 +35,17 @@ export async function runMigrations(): Promise<void> {
       console.log(`✅ Applied migration: ${file}`);
     }
 
+    // Ensure default organization and user exist for unauthenticated / local agent mode
+    await client.query(`
+      INSERT INTO organizations (id, name, slug)
+      VALUES ('00000000-0000-0000-0000-000000000001', 'Default Workspace', 'default')
+      ON CONFLICT (id) DO NOTHING;
+
+      INSERT INTO users (id, org_id, email, name, role)
+      VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'agent@default.local', 'Default Agent', 'agent')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
     console.log('🎉 All migrations completed successfully.');
   } catch (error) {
     console.error('❌ Migration failed:', error);

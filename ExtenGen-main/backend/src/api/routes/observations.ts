@@ -34,10 +34,11 @@ export const observationRoutes: FastifyPluginAsync = async (fastify) => {
     const tenant = await resolveAuthContext(authHeader);
     const query = request.query as any;
 
-    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 20, 1), 100);
     const source = query.source;
+    const tag = query.tag || query.tags;
 
-    const observations = await listObservations(tenant, limit, source);
+    const observations = await listObservations(tenant, limit, source, tag);
     return {
       count: observations.length,
       observations,

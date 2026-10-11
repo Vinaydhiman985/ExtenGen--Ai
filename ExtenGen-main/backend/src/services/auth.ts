@@ -73,24 +73,24 @@ export async function resolveAuthContext(authHeader?: string): Promise<TenantCon
         console.error('Error querying api_key from database:', err);
       }
     }
+
+    // Key was not found in database or invalid
+    throw Object.assign(new Error('Invalid API key'), { statusCode: 401 });
   }
 
-  // 2. Direct format for tests or CLI passing JSON/UUID header: `org_id[:user_id]`
-  const parts = token.split(':');
-  if (parts.length >= 1 && parts[0].length >= 8) {
-    const orgId = parts[0];
-    const userId = parts[1] || null;
-    return {
-      orgId,
-      userId,
-      role: 'member',
-    };
+  // 2. Direct format for tests only: `org_uuid[:user_id]`
+  if (env.NODE_ENV === 'test') {
+    const parts = token.split(':');
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parts[0]);
+    if (isUuid || (parts.length === 2 && parts[0].length >= 8)) {
+      return {
+        orgId: parts[0],
+        userId: parts[1] || null,
+        role: 'member',
+      };
+    }
   }
 
-  // Fallback to default
-  return {
-    orgId: env.DEFAULT_ORG_ID,
-    userId: env.DEFAULT_USER_ID,
-    role: 'agent',
-  };
+  // Any other non-empty header token that is invalid must be rejected with 401
+  throw Object.assign(new Error('Invalid authorization token'), { statusCode: 401 });
 }

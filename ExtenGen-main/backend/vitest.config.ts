@@ -6,5 +6,9 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 15000,
     include: ['tests/**/*.test.ts'],
+    env: {
+      DATABASE_URL: '',
+      NODE_ENV: 'test',
+    },
   },
 });

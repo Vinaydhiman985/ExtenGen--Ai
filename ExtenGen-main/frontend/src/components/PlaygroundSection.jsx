@@ -3,7 +3,7 @@ import { recallContext, MOCK_RECALL_RESULTS } from "../services/api.js";
 
 export function PlaygroundSection() {
   const [query, setQuery] = useState("how do we handle invoice pagination and rate limits?");
-  const [threshold, setThreshold] = useState(0.75);
+  const [threshold, setThreshold] = useState(0.30);
   const [topK, setTopK] = useState(3);
   const [isExecuting, setIsExecuting] = useState(false);
   const [results, setResults] = useState(MOCK_RECALL_RESULTS);
@@ -191,10 +191,6 @@ export function PlaygroundSection() {
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
                         <span>Cosine Similarity</span>
                         <b className="dash-mono">{(res.similarity * 100).toFixed(1)}%</b>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                        <span>Recency Boost</span>
-                        <span className="dash-badge dash-badge-green">{res.recencyBoost || "+2%"}</span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
                         <span>RLS Permission</span>

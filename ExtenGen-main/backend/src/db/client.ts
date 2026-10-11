@@ -1,6 +1,5 @@
 import pg from 'pg';
 import pgvector from 'pgvector/pg';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
 import { TenantContext } from './schema.js';
 
@@ -8,19 +7,6 @@ const { Pool } = pg;
 
 // Connection pool for PostgreSQL / Supabase
 let pool: pg.Pool | null = null;
-let supabaseClient: SupabaseClient | null = null;
-
-export function getSupabaseClient(): SupabaseClient | null {
-  if (supabaseClient) return supabaseClient;
-  const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_PUBLISHABLE_KEY;
-  if (env.SUPABASE_URL && key) {
-    supabaseClient = createClient(env.SUPABASE_URL, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    return supabaseClient;
-  }
-  return null;
-}
 
 export function getDbPool(): pg.Pool | null {
   if (pool) return pool;

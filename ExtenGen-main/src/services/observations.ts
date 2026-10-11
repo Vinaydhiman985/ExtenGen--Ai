@@ -150,7 +150,7 @@ export async function recallContext(
   const {
     query,
     limit = 5,
-    similarityThreshold = 0.50,
+    similarityThreshold = 0.30,
     sources,
     tags,
   } = input;
@@ -187,6 +187,11 @@ export async function recallContext(
       if (sources && sources.length > 0) {
         params.push(sources);
         sql += ` AND source = ANY($${params.length})`;
+      }
+
+      if (tags && tags.length > 0) {
+        params.push(tags);
+        sql += ` AND (metadata ? 'tags' AND metadata->'tags' ?| $${params.length}::text[])`;
       }
 
       sql += ` ORDER BY embedding <=> $1::vector ASC LIMIT $${params.length + 1}`;
@@ -269,18 +274,24 @@ export function formatContextForInjection(matches: ScoredObservation[]): string 
 export async function listObservations(
   tenant: TenantContext,
   limit = 20,
-  source?: string
+  source?: string,
+  tag?: string
 ): Promise<Observation[]> {
   const pool = getDbPool();
 
   if (pool) {
     return await withTenantContext(tenant, async (client) => {
-      let sql = `SELECT * FROM observations WHERE org_id = $1`;
+      let sql = `SELECT id, org_id, user_id, source, title, content, metadata, status, created_at, updated_at FROM observations WHERE org_id = $1`;
       const params: (string | number)[] = [tenant.orgId];
 
       if (source) {
         params.push(source);
-        sql += ` AND source = $2`;
+        sql += ` AND source = $${params.length}`;
+      }
+
+      if (tag) {
+        params.push(tag);
+        sql += ` AND (metadata ? 'tags' AND metadata->'tags' ? $${params.length})`;
       }
 
       sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
@@ -292,9 +303,19 @@ export async function listObservations(
   }
 
   const results = Array.from(memoryStore.values())
-    .filter(obs => obs.org_id === tenant.orgId && (!source || obs.source === source))
+    .filter(obs => {
+      const matchOrg = obs.org_id === tenant.orgId;
+      const matchSource = !source || obs.source === source;
+      const obsTags = (obs.metadata?.tags as string[]) || [];
+      const matchTag = !tag || obsTags.includes(tag);
+      return matchOrg && matchSource && matchTag;
+    })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(obs => {
+      const { embedding, ...safeObs } = obs;
+      return safeObs as Observation;
+    });
 
   return results;
 }
@@ -305,3 +326,51 @@ export async function listObservations(
 export function clearMemoryStore(): void {
   memoryStore.clear();
 }
+
+/**
+ * Seed initial sample memories if store is currently empty
+ */
+export async function seedInitialMemoriesIfEmpty(tenant: TenantContext): Promise<void> {
+  const existing = await listObservations(tenant, 1);
+  if (existing.length > 0) return;
+
+  const samples: StoreObservationInput[] = [
+    {
+      title: 'Use Redis + BullMQ for asynchronous background ingestion',
+      content: 'All GitHub webhooks and batch vector embeddings are processed asynchronously using BullMQ with Redis 7+. Retries use exponential backoff up to 5 attempts.',
+      tags: ['architecture', 'queue'],
+      source: 'agent_session',
+      immediateEmbed: true,
+    },
+    {
+      title: 'Fastify CORS configuration for SSE streaming',
+      content: 'Always configure @fastify/cors with origin: true and credentials: true to allow browser clients to stream MCP Server-Sent Events without preflight errors.',
+      tags: ['api', 'security'],
+      source: 'agent_session',
+      immediateEmbed: true,
+    },
+    {
+      title: 'Always use base64 cursors for invoice and order pagination',
+      content: 'When querying /orders or /invoices endpoint, do not use SQL OFFSET pagination. Use opaque base64 encoded cursor strings combining created_at timestamp and order id.',
+      tags: ['api', 'db', 'pagination'],
+      source: 'agent_session',
+      immediateEmbed: true,
+    },
+    {
+      title: 'Fastify API rate limiting with Redis token bucket',
+      content: 'Enforce 100 req/min per IP using Redis rate-limiter plugin on /api/v1 endpoints to protect Postgres connection pool.',
+      tags: ['api', 'security'],
+      source: 'agent_session',
+      immediateEmbed: true,
+    },
+  ];
+
+  for (const item of samples) {
+    try {
+      await storeObservation(tenant, item);
+    } catch {
+      // Ignore if database unique constraint or conflict
+    }
+  }
+}
+

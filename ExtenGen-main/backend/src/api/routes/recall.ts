@@ -12,10 +12,16 @@ export const recallRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Field "query" is required.' });
     }
 
+    const parsedLimit = parseInt(body.limit, 10);
+    const limit = Math.min(Math.max(isNaN(parsedLimit) ? 5 : parsedLimit, 1), 50);
+
+    const parsedThreshold = parseFloat(body.similarityThreshold);
+    const similarityThreshold = !isNaN(parsedThreshold) ? Math.min(Math.max(parsedThreshold, 0.0), 1.0) : 0.30;
+
     const result = await recallContext(tenant, {
       query: body.query,
-      limit: body.limit ? parseInt(body.limit, 10) : 5,
-      similarityThreshold: body.similarityThreshold !== undefined ? parseFloat(body.similarityThreshold) : 0.50,
+      limit,
+      similarityThreshold,
       sources: body.sources,
       tags: body.tags,
     });

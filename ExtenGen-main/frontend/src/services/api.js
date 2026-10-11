@@ -210,18 +210,16 @@ export function formatObservationForUI(obs) {
  * Format scored observation for the Playground results display
  */
 export function formatScoredObservationForUI(scoredObs, index) {
-  const metadata = scoredObs.metadata || {};
-  const similarityScore = typeof scoredObs.similarity === "number" ? scoredObs.similarity : 0.85;
+  const similarityScore = typeof scoredObs.similarity === "number" ? scoredObs.similarity : 0;
   const title = scoredObs.title || scoredObs.content.slice(0, 60) + "...";
   
   return {
     id: scoredObs.id || `live-${index + 1}`,
     title,
     similarity: similarityScore,
-    recencyBoost: "+2%",
     accessRule: `PASSED (Org: ${scoredObs.org_id ? scoredObs.org_id.slice(0, 8) : "Acme Corp"})`,
-    finalScore: Math.min(1.0, similarityScore + 0.02),
-    injectedMarkdown: `### [ExtenGen Memory #${scoredObs.id ? scoredObs.id.slice(0, 8) : index + 1}]\n**Topic**: ${title}\n**Content**: ${scoredObs.content}\n**Source**: ${scoredObs.source || "agent_session"}\n**Similarity**: ${(similarityScore * 100).toFixed(1)}%`
+    finalScore: similarityScore,
+    injectedMarkdown: `### [ExtenGen Memory #${scoredObs.id ? scoredObs.id.slice(0, 8) : index + 1}]\n**Topic**: ${title}\n**Content**: ${scoredObs.content}\n**Source**: ${scoredObs.source || "agent_session"}\n**Cosine Similarity**: ${(similarityScore * 100).toFixed(1)}%`
   };
 }
 
@@ -285,20 +283,14 @@ export async function fetchObservations({ limit = 50, source } = {}) {
     const data = await res.json();
     notifyStatus({ isLive: true, error: null });
 
-    // If backend returns real observations
+    // When backend is live, return its actual observations (never mask an empty DB with mock data)
     const uiObservations = (data.observations || []).map(formatObservationForUI);
-    
-    // If backend has 0 observations yet (e.g. freshly started in memory),
-    // combine with mock observations so dashboard doesn't appear empty, but mark live
-    const merged = uiObservations.length > 0 
-      ? uiObservations 
-      : MOCK_MEMORIES;
 
     return {
       ok: true,
       isLive: true,
       count: data.count || 0,
-      observations: merged,
+      observations: uiObservations,
       isBackendEmpty: uiObservations.length === 0
     };
   } catch (err) {
@@ -366,7 +358,7 @@ export async function createObservation({
 export async function recallContext({
   query,
   limit = 5,
-  similarityThreshold = 0.5,
+  similarityThreshold = 0.3,
   sources,
   tags
 }) {

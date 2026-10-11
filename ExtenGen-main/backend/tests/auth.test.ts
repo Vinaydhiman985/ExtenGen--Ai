@@ -31,4 +31,14 @@ describe('Auth & Multi-Tenancy Service', () => {
     expect(context.orgId).toBeDefined();
     expect(context.userId).toBeDefined();
   });
+
+  it('should throw 401 on invalid ext_ key', async () => {
+    await expect(resolveAuthContext('Bearer ext_live_invalid12345678901234567890123456789012'))
+      .rejects.toThrow('Invalid API key');
+  });
+
+  it('should throw 401 on malformed authorization token', async () => {
+    await expect(resolveAuthContext('Bearer invalid_token'))
+      .rejects.toThrow('Invalid authorization token');
+  });
 });

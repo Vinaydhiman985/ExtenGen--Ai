@@ -1,6 +1,8 @@
+import crypto from 'crypto';
 import { FastifyPluginAsync } from 'fastify';
 import { resolveAuthContext } from '../../services/auth.js';
 import { ingestGitHubRepo, fetchAndIngestFromGitHubAPI } from '../../services/github.js';
+import { env } from '../../config/env.js';
 
 export const githubRoutes: FastifyPluginAsync = async (fastify) => {
   // Ingest from API or payload
@@ -45,6 +47,22 @@ export const githubRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GitHub Webhook listener (for automated push / pull_request events)
   fastify.post('/api/v1/webhooks/github', async (request, reply) => {
+    // 1. Verify webhook signature if GITHUB_WEBHOOK_SECRET is configured
+    if (env.GITHUB_WEBHOOK_SECRET) {
+      const signature = request.headers['x-hub-signature-256'] as string;
+      if (!signature) {
+        return reply.status(401).send({ error: 'Missing x-hub-signature-256 header' });
+      }
+
+      const rawBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
+      const hmac = crypto.createHmac('sha256', env.GITHUB_WEBHOOK_SECRET);
+      const expectedSignature = `sha256=${hmac.update(rawBody).digest('hex')}`;
+
+      if (signature.length !== expectedSignature.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+        return reply.status(401).send({ error: 'Invalid webhook signature' });
+      }
+    }
+
     const authHeader = request.headers.authorization;
     const tenant = await resolveAuthContext(authHeader);
     const event = request.headers['x-github-event'] as string;

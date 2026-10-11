@@ -150,7 +150,7 @@ export async function recallContext(
   const {
     query,
     limit = 5,
-    similarityThreshold = 0.50,
+    similarityThreshold = 0.30,
     sources,
     tags,
   } = input;
@@ -187,6 +187,11 @@ export async function recallContext(
       if (sources && sources.length > 0) {
         params.push(sources);
         sql += ` AND source = ANY($${params.length})`;
+      }
+
+      if (tags && tags.length > 0) {
+        params.push(tags);
+        sql += ` AND (metadata ? 'tags' AND metadata->'tags' ?| $${params.length}::text[])`;
       }
 
       sql += ` ORDER BY embedding <=> $1::vector ASC LIMIT $${params.length + 1}`;
@@ -269,18 +274,24 @@ export function formatContextForInjection(matches: ScoredObservation[]): string 
 export async function listObservations(
   tenant: TenantContext,
   limit = 20,
-  source?: string
+  source?: string,
+  tag?: string
 ): Promise<Observation[]> {
   const pool = getDbPool();
 
   if (pool) {
     return await withTenantContext(tenant, async (client) => {
-      let sql = `SELECT * FROM observations WHERE org_id = $1`;
+      let sql = `SELECT id, org_id, user_id, source, title, content, metadata, status, created_at, updated_at FROM observations WHERE org_id = $1`;
       const params: (string | number)[] = [tenant.orgId];
 
       if (source) {
         params.push(source);
-        sql += ` AND source = $2`;
+        sql += ` AND source = $${params.length}`;
+      }
+
+      if (tag) {
+        params.push(tag);
+        sql += ` AND (metadata ? 'tags' AND metadata->'tags' ? $${params.length})`;
       }
 
       sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
@@ -292,9 +303,19 @@ export async function listObservations(
   }
 
   const results = Array.from(memoryStore.values())
-    .filter(obs => obs.org_id === tenant.orgId && (!source || obs.source === source))
+    .filter(obs => {
+      const matchOrg = obs.org_id === tenant.orgId;
+      const matchSource = !source || obs.source === source;
+      const obsTags = (obs.metadata?.tags as string[]) || [];
+      const matchTag = !tag || obsTags.includes(tag);
+      return matchOrg && matchSource && matchTag;
+    })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(obs => {
+      const { embedding, ...safeObs } = obs;
+      return safeObs as Observation;
+    });
 
   return results;
 }

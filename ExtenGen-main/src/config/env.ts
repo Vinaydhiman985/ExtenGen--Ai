@@ -13,6 +13,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   SUPABASE_URL: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_SECRET_KEY: z.string().optional(),
+  SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
 
   // OpenAI / Embeddings
   OPENAI_API_KEY: z.string().default('mock'),

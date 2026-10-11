@@ -58,14 +58,14 @@ export async function withTenantContext<T>(
     await client.query('BEGIN');
 
     if (context.bypassRls) {
-      await client.query("SET LOCAL app.bypass_rls = 'true'");
+      await client.query("SELECT set_config('app.bypass_rls', 'true', true)");
     } else {
-      await client.query("SET LOCAL app.bypass_rls = 'false'");
+      await client.query("SELECT set_config('app.bypass_rls', 'false', true)");
       if (context.orgId) {
-        await client.query('SET LOCAL app.current_org_id = $1', [context.orgId]);
+        await client.query("SELECT set_config('app.current_org_id', $1, true)", [context.orgId]);
       }
       if (context.userId) {
-        await client.query('SET LOCAL app.current_user_id = $1', [context.userId]);
+        await client.query("SELECT set_config('app.current_user_id', $1, true)", [context.userId]);
       }
     }
 

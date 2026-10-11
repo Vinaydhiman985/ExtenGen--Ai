@@ -2,12 +2,24 @@ import { buildApp } from './api/server.js';
 import { env } from './config/env.js';
 import { initQueue, closeQueue } from './services/queue.js';
 import { closeDb } from './db/client.js';
+import { seedInitialMemoriesIfEmpty } from './services/observations.js';
 
 async function start() {
   console.log('🚀 Starting ExtenGen Shared Memory Server...');
 
   // Initialize BullMQ Queue & Worker
   initQueue();
+
+  // Seed default memories for default tenant if empty (non-blocking)
+  try {
+    await seedInitialMemoriesIfEmpty({
+      orgId: env.DEFAULT_ORG_ID,
+      userId: env.DEFAULT_USER_ID,
+      role: 'agent',
+    });
+  } catch (seedErr) {
+    console.warn('⚠️ Initial database seed skipped (run "npm run migrate" to initialize tables):', (seedErr as Error).message);
+  }
 
   const app = await buildApp();
 

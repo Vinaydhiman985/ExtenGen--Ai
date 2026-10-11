@@ -10,12 +10,16 @@ async function start() {
   // Initialize BullMQ Queue & Worker
   initQueue();
 
-  // Seed default memories for default tenant if empty
-  await seedInitialMemoriesIfEmpty({
-    orgId: env.DEFAULT_ORG_ID,
-    userId: env.DEFAULT_USER_ID,
-    role: 'agent',
-  });
+  // Seed default memories for default tenant if empty (non-blocking)
+  try {
+    await seedInitialMemoriesIfEmpty({
+      orgId: env.DEFAULT_ORG_ID,
+      userId: env.DEFAULT_USER_ID,
+      role: 'agent',
+    });
+  } catch (seedErr) {
+    console.warn('⚠️ Initial database seed skipped (run "npm run migrate" to initialize tables):', (seedErr as Error).message);
+  }
 
   const app = await buildApp();
 
