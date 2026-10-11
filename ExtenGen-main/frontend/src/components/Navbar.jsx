@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { checkHealth, subscribeApiStatus } from "../services/api.js";
 
 export function Navbar({
   activeView,
@@ -10,6 +11,17 @@ export function Navbar({
 }) {
   const [selectedOrg, setSelectedOrg] = useState("Acme Corp (Prod)");
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+  const [apiStatus, setApiStatus] = useState({ isLive: false, checked: false });
+
+  useEffect(() => {
+    // Initial health check
+    checkHealth();
+    // Subscribe to status updates from API calls
+    const unsubscribe = subscribeApiStatus((status) => {
+      setApiStatus(status);
+    });
+    return unsubscribe;
+  }, []);
 
   const orgs = ["Acme Corp (Prod)", "Staging Org", "Dev Sandbox", "Personal Workspace"];
 
@@ -52,6 +64,17 @@ export function Navbar({
       </div>
 
       <div className="dash-header-actions">
+        {/* API Live / Demo Mode Indicator */}
+        <button
+          className={`dash-status-indicator ${apiStatus.isLive ? "dash-status-live" : "dash-status-demo"}`}
+          onClick={() => checkHealth()}
+          title={apiStatus.isLive ? "Connected to live Fastify backend (Port 3000). Click to re-check." : "Backend not detected on :3000. Operating in Demo Mode (Mock data fallback). Click to retry."}
+          style={{ cursor: "pointer", border: "1.5px solid currentColor" }}
+        >
+          <span className={`dash-pulse-dot ${apiStatus.isLive ? "live" : "demo"}`} />
+          <span>{apiStatus.isLive ? "Live API" : "Demo Mode"}</span>
+        </button>
+
         {/* Org Switcher */}
         <div style={{ position: "relative" }}>
           <button

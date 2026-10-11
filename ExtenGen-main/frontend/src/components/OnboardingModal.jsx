@@ -33,10 +33,10 @@ export function OnboardingModal({ isOpen, onClose }) {
     ]
   }
 }`,
-    api: `curl -X POST http://localhost:3000/api/recall \\
+    api: `curl -X POST http://localhost:3000/api/v1/context/recall \\
   -H "Authorization: Bearer ex_live_9f82a1b9204c44a8b" \\
   -H "Content-Type: application/json" \\
-  -d '{"query": "database connection setup", "top_k": 3}'`
+  -d '{"query": "database connection setup", "limit": 3}'`
   };
 
   const handleCopy = () => {

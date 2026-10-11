@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { fetchObservations, createObservation, MOCK_MEMORIES } from "../services/api.js";
 
 export function MemoriesSection({ initialTab = "Indexed" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -6,107 +7,114 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
   const [selectedTag, setSelectedTag] = useState("all");
   const [selectedMemory, setSelectedMemory] = useState(null);
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(true);
+  const [memories, setMemories] = useState(MOCK_MEMORIES);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLive, setIsLive] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const [memories, setMemories] = useState([
-    {
-      id: "mem-201",
-      title: "Use Redis + BullMQ for asynchronous background ingestion",
-      content: "All GitHub webhooks and batch vector embeddings are processed asynchronously using BullMQ with Redis 7+. Retries use exponential backoff up to 5 attempts.",
-      status: "Indexed",
-      author: "Ana (Claude Code)",
-      org: "Acme Corp",
-      tags: ["architecture", "queue"],
-      secretsRedacted: 0,
-      createdAt: "2026-10-05 09:12",
-      vectorId: "vec_9921_hnsw",
-      supersededBy: null,
-      duplicateWarning: null
-    },
-    {
-      id: "mem-202",
-      title: "Fastify CORS configuration for SSE streaming",
-      content: "Always configure @fastify/cors with origin: true and credentials: true to allow browser clients to stream MCP Server-Sent Events without preflight errors.",
-      status: "Verified",
-      author: "Vinay Dhiman",
-      org: "Acme Corp",
-      tags: ["api", "security"],
-      secretsRedacted: 1,
-      createdAt: "2026-10-04 14:30",
-      vectorId: "vec_8812_hnsw",
-      supersededBy: null,
-      duplicateWarning: null
-    },
-    {
-      id: "mem-203",
-      title: "Proposed: Always use base64 cursors for order pagination",
-      content: "Agent proposed: When querying /orders endpoint, do not use OFFSET. Use opaque base64 encoded cursor strings combining created_at timestamp and order id.",
-      status: "Proposed",
-      author: "Claude Code Agent",
-      org: "Acme Corp",
-      tags: ["api", "db"],
-      secretsRedacted: 0,
-      createdAt: "10 mins ago",
-      vectorId: "pending_embedding",
-      supersededBy: null,
-      duplicateWarning: "⚠️ 94% similarity match with memory #mem-201 (Off-by-one pagination rule)"
-    },
-    {
-      id: "mem-204",
-      title: "Proposed: Enforce PostgreSQL Row-Level Security (RLS) on memories table",
-      content: "Agent proposed: All queries must pass auth.uid() and current_setting('app.current_org_id') into pgvector search function to prevent cross-tenant memory leak.",
-      status: "Proposed",
-      author: "Cursor IDE Agent",
-      org: "Acme Corp",
-      tags: ["security", "db"],
-      secretsRedacted: 2,
-      createdAt: "25 mins ago",
-      vectorId: "pending_embedding",
-      supersededBy: null,
-      duplicateWarning: null
-    },
-    {
-      id: "mem-205",
-      title: "Proposed: Use Vitest for parallel worker test execution",
-      content: "Agent proposed: Run Vitest with --threads=true for fast unit testing of Fastify routes.",
-      status: "Proposed",
-      author: "Codex CLI Agent",
-      org: "Acme Corp",
-      tags: ["testing"],
-      secretsRedacted: 0,
-      createdAt: "1 hour ago",
-      vectorId: "pending_embedding",
-      supersededBy: null,
-      duplicateWarning: null
-    },
-    {
-      id: "mem-206",
-      title: "Legacy: Offset-based pagination for /orders API",
-      content: "Use page and limit query params for SQL OFFSET queries.",
-      status: "Superseded",
-      author: "Ravi",
-      org: "Acme Corp",
-      tags: ["api"],
-      secretsRedacted: 0,
-      createdAt: "2026-09-15 11:20",
-      vectorId: "vec_1002_arch",
-      supersededBy: "mem-203",
-      duplicateWarning: null
-    },
-    {
-      id: "mem-207",
-      title: "Old OpenAI Ada-002 embedding dimension config",
-      content: "1536d vector format with Ada-002 model.",
-      status: "Archived",
-      author: "Sreedharan",
-      org: "Acme Corp",
-      tags: ["architecture"],
-      secretsRedacted: 0,
-      createdAt: "2026-08-01 10:00",
-      vectorId: "vec_0001_legacy",
-      supersededBy: null,
-      duplicateWarning: null
+  // New Observation Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const [newTags, setNewTags] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createFeedback, setCreateFeedback] = useState(null);
+
+  // Load memories on component mount
+  useEffect(() => {
+    loadMemories();
+  }, []);
+
+  const loadMemories = async () => {
+    setIsLoading(true);
+    try {
+      const result = await fetchObservations({ limit: 50 });
+      setIsLive(result.isLive);
+      if (result.observations && result.observations.length > 0) {
+        setMemories(result.observations);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch memories, using fallback:", err);
+      setIsLive(false);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const result = await fetchObservations({ limit: 50 });
+      setIsLive(result.isLive);
+      if (result.observations && result.observations.length > 0) {
+        setMemories(result.observations);
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleCreateObservation = async (e) => {
+    e.preventDefault();
+    if (!newContent.trim()) return;
+
+    setIsSubmitting(true);
+    setCreateFeedback(null);
+
+    const tagList = newTags
+      .split(",")
+      .map(t => t.trim().replace(/^#/, ""))
+      .filter(Boolean);
+
+    const result = await createObservation({
+      content: newContent.trim(),
+      title: newTitle.trim() || undefined,
+      source: "dashboard",
+      tags: tagList.length > 0 ? tagList : ["general"],
+      immediateEmbed: true
+    });
+
+    setIsSubmitting(false);
+
+    if (result.ok && result.observation) {
+      setMemories(prev => [result.observation, ...prev]);
+      setCreateFeedback({ success: true, message: "Observation captured and stored!" });
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setNewTitle("");
+        setNewContent("");
+        setNewTags("");
+        setCreateFeedback(null);
+        setActiveTab("Indexed");
+      }, 900);
+    } else {
+      // Local fallback creation if backend offline
+      const fallbackItem = {
+        id: `mem-${Date.now().toString().slice(-4)}`,
+        title: newTitle.trim() || newContent.trim().slice(0, 50),
+        content: newContent.trim(),
+        status: "Indexed",
+        author: "Dashboard User",
+        org: "Acme Corp",
+        tags: tagList.length > 0 ? tagList : ["general"],
+        secretsRedacted: 0,
+        createdAt: "Just now",
+        vectorId: `vec_${Date.now().toString().slice(-4)}_local`,
+        supersededBy: null,
+        duplicateWarning: null
+      };
+      setMemories(prev => [fallbackItem, ...prev]);
+      setCreateFeedback({ success: true, message: "Saved in local Demo Mode." });
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setNewTitle("");
+        setNewContent("");
+        setNewTags("");
+        setCreateFeedback(null);
+        setActiveTab("Indexed");
+      }, 900);
+    }
+  };
 
   const tabs = ["Proposed", "Indexed", "Verified", "Superseded", "Archived"];
   const allTags = ["all", "api", "db", "security", "architecture", "queue", "testing"];
@@ -147,9 +155,39 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-dark">🧠 Memory Repository</span>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
+            <span className="dash-badge dash-badge-dark">🧠 Memory Repository</span>
+            {isLive ? (
+              <span className="dash-status-indicator dash-status-live" style={{ padding: "3px 10px", fontSize: "11px" }}>
+                <span className="dash-pulse-dot live" /> Live API Connected
+              </span>
+            ) : (
+              <span className="dash-status-indicator dash-status-demo" style={{ padding: "3px 10px", fontSize: "11px" }}>
+                <span className="dash-pulse-dot demo" /> Demo Mode (Mock Fallback)
+              </span>
+            )}
+          </div>
           <h1>Memories Hub & Lifecycle Control</h1>
           <p>Inspect active vector memories, verify agent observations, review proposed memories (#4 Review Queue), and monitor secrets redaction.</p>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            className="dash-pill dash-pill-white dash-pill-sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Reload memories from server"
+          >
+            <span className={isRefreshing ? "dash-spin" : ""}>🔄</span>
+            <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+          </button>
+
+          <button
+            className="dash-pill dash-pill-dark dash-pill-sm"
+            onClick={() => setShowCreateModal(true)}
+          >
+            ➕ Capture Observation
+          </button>
         </div>
       </div>
 
@@ -197,7 +235,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
           />
         </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
           {allTags.map(tag => (
             <button
               key={tag}
@@ -212,11 +250,17 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
 
       {/* MEMORIES TABLE */}
       <div className="dash-box dash-table-box">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div style={{ padding: "50px", textAlign: "center" }}>
+            <span className="dash-spin" style={{ fontSize: "32px", display: "inline-block", marginBottom: "12px" }}>⚙️</span>
+            <h3>Loading Vector Memories...</h3>
+            <p className="dash-sub">Connecting to GET /api/v1/observations</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ padding: "40px", textAlign: "center" }}>
             <span style={{ fontSize: "32px" }}>📭</span>
             <h3>No memories in "{activeTab}" status</h3>
-            <p className="dash-sub">Try clearing your search query or selecting a different status tab.</p>
+            <p className="dash-sub">Try clearing your search query, selecting a different status tab, or capturing a new observation.</p>
           </div>
         ) : (
           <div className="dash-table-wrap">
@@ -249,7 +293,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
 
                     <td>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        {mem.tags.map(t => (
+                        {(mem.tags || []).map(t => (
                           <span key={t} className="dash-badge dash-badge-white">#{t}</span>
                         ))}
                       </div>
@@ -313,6 +357,89 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
           </div>
         )}
       </div>
+
+      {/* CREATE NEW OBSERVATION MODAL */}
+      {showCreateModal && (
+        <div className="dash-modal-backdrop" onClick={() => setShowCreateModal(false)}>
+          <div className="dash-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "18px" }}>
+              <div>
+                <span className="dash-badge dash-badge-dark">POST /api/v1/observations</span>
+                <h2 style={{ font: "400 30px/1 var(--disp)", textTransform: "uppercase", margin: "8px 0 0" }}>Capture New Memory</h2>
+                <p className="dash-sub">Store an architectural decision, lesson learned, or workflow rule.</p>
+              </div>
+              <button className="dash-close-btn" onClick={() => setShowCreateModal(false)}>✕</button>
+            </div>
+
+            {createFeedback && (
+              <div style={{ padding: "12px 16px", borderRadius: "12px", background: "var(--yellow)", border: "1.5px solid var(--ink)", marginBottom: "16px", fontWeight: 700 }}>
+                {createFeedback.message}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateObservation} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label style={{ fontSize: "13px", fontWeight: 700, display: "block", marginBottom: "6px" }}>
+                  Title / Decision Summary (Optional)
+                </label>
+                <input
+                  type="text"
+                  className="dash-input"
+                  style={{ background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "12px", padding: "10px 14px", width: "100%" }}
+                  placeholder="e.g. Use Redis + BullMQ for background ingestion"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "13px", fontWeight: 700, display: "block", marginBottom: "6px" }}>
+                  Observation Content <span style={{ color: "var(--red)" }}>*</span>
+                </label>
+                <textarea
+                  className="dash-textarea"
+                  rows={4}
+                  required
+                  placeholder="Describe the context, decision, or rationale..."
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "13px", fontWeight: 700, display: "block", marginBottom: "6px" }}>
+                  Tags (Comma separated)
+                </label>
+                <input
+                  type="text"
+                  className="dash-input"
+                  style={{ background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "12px", padding: "10px 14px", width: "100%" }}
+                  placeholder="architecture, db, pagination"
+                  value={newTags}
+                  onChange={(e) => setNewTags(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                <button
+                  type="button"
+                  className="dash-pill dash-pill-white"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="dash-pill dash-pill-dark"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "⚡ Vectorizing & Saving..." : "💾 Save & Vectorize"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MEMORY DETAIL DRAWER */}
       {selectedMemory && (

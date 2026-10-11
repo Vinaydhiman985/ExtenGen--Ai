@@ -412,3 +412,56 @@
   .dash-sidebar.open { transform: translateX(0); }
   .dash-drawer-card { max-width: 100%; }
 }
+
+/* REAL-TIME API WIRING & DEMO MODE BADGES */
+.dash-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1.5px solid transparent;
+}
+.dash-status-live {
+  background: rgba(47, 163, 107, 0.15);
+  color: #0e4d3a;
+  border-color: rgba(47, 163, 107, 0.5);
+}
+.dash-status-demo {
+  background: rgba(233, 226, 58, 0.3);
+  color: #44400c;
+  border-color: var(--ink);
+}
+.dash-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dash-pulse-dot.live {
+  background: #2fa36b;
+  box-shadow: 0 0 0 0 rgba(47, 163, 107, 0.7);
+  animation: dashPulseGreen 2s infinite;
+}
+.dash-pulse-dot.demo {
+  background: #c79a0b;
+}
+
+@keyframes dashPulseGreen {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 163, 107, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(47, 163, 107, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 163, 107, 0); }
+}
+
+.dash-spin {
+  display: inline-block;
+  animation: dashSpinAnim 1s linear infinite;
+}
+@keyframes dashSpinAnim {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+

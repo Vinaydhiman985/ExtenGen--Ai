@@ -1,56 +1,68 @@
 import React, { useState } from "react";
+import { recallContext, MOCK_RECALL_RESULTS } from "../services/api.js";
 
 export function PlaygroundSection() {
   const [query, setQuery] = useState("how do we handle invoice pagination and rate limits?");
   const [threshold, setThreshold] = useState(0.75);
   const [topK, setTopK] = useState(3);
-  const [selectedTag, setSelectedTag] = useState("all");
   const [isExecuting, setIsExecuting] = useState(false);
+  const [results, setResults] = useState(MOCK_RECALL_RESULTS);
+  const [matchesCount, setMatchesCount] = useState(3);
+  const [isLive, setIsLive] = useState(false);
+  const [hasExecuted, setHasExecuted] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
-  const mockResults = [
-    {
-      id: "mem-201",
-      title: "Use opaque base64 cursors for invoice and order pagination",
-      similarity: 0.942,
-      recencyBoost: "+4%",
-      accessRule: "PASSED (Org: Acme Corp)",
-      finalScore: 0.961,
-      injectedMarkdown: `### [ExtenGen Memory #mem-201]\n**Topic**: Invoice & Order Pagination Standard\n**Decision**: Use opaque base64 encoded cursor strings combining created_at timestamp and order ID. Do NOT use SQL OFFSET pagination.\n**Source**: Claude Code session (2026-10-05)`
-    },
-    {
-      id: "mem-202",
-      title: "Fastify API rate limiting with Redis token bucket",
-      similarity: 0.884,
-      recencyBoost: "+2%",
-      accessRule: "PASSED (Org: Acme Corp)",
-      finalScore: 0.901,
-      injectedMarkdown: `### [ExtenGen Memory #mem-202]\n**Topic**: Fastify Rate Limiter\n**Decision**: Enforce 100 req/min per IP using Redis rate-limiter plugin on /api/v1 endpoints.\n**Source**: Vinay Dhiman (2026-10-04)`
-    },
-    {
-      id: "mem-203",
-      title: "BullMQ queue retry policy with exponential backoff",
-      similarity: 0.791,
-      recencyBoost: "+0%",
-      accessRule: "PASSED (Org: Acme Corp)",
-      finalScore: 0.791,
-      injectedMarkdown: `### [ExtenGen Memory #mem-203]\n**Topic**: Background Job Retry Policy\n**Decision**: Retries configured with 5 max attempts and 1000ms exponential delay.\n**Source**: Sreedharan (2026-10-02)`
-    }
-  ];
+  const handleTestQuery = async () => {
+    if (!query.trim()) return;
 
-  const handleTestQuery = () => {
     setIsExecuting(true);
-    setTimeout(() => {
+    setApiError(null);
+
+    try {
+      const response = await recallContext({
+        query: query.trim(),
+        limit: topK,
+        similarityThreshold: threshold
+      });
+
+      setIsLive(response.isLive);
+      setResults(response.results || []);
+      setMatchesCount(response.matchesCount || (response.results ? response.results.length : 0));
+      setHasExecuted(true);
+
+      if (!response.isLive && response.error) {
+        setApiError(response.error);
+      }
+    } catch (err) {
+      console.warn("Recall failed, using fallback:", err);
+      setIsLive(false);
+      setHasExecuted(true);
+      setApiError(err.message);
+    } finally {
       setIsExecuting(false);
-    }, 400);
+    }
   };
 
   return (
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-dark">🎯 Interactive Testing</span>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
+            <span className="dash-badge dash-badge-dark">🎯 Interactive Testing</span>
+            {hasExecuted && (
+              isLive ? (
+                <span className="dash-status-indicator dash-status-live" style={{ padding: "3px 10px", fontSize: "11px" }}>
+                  <span className="dash-pulse-dot live" /> Live POST /api/v1/context/recall
+                </span>
+              ) : (
+                <span className="dash-status-indicator dash-status-demo" style={{ padding: "3px 10px", fontSize: "11px" }}>
+                  <span className="dash-pulse-dot demo" /> Demo Mode (Mock Fallback)
+                </span>
+              )
+            )}
+          </div>
           <h1>Recall Playground & Explainability</h1>
-          <p>Test real-time context retrieval (`recall_context`), adjust parameters, inspect "Why this memory?" score breakdowns, and preview exact prompt injections.</p>
+          <p>Test real-time context retrieval (`POST /api/v1/context/recall`), adjust similarity thresholds, inspect "Why this memory?" score breakdowns, and preview exact prompt injections.</p>
         </div>
       </div>
 
@@ -74,7 +86,7 @@ export function PlaygroundSection() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 600 }}>
-                <label>Threshold</label>
+                <label>Cosine Threshold</label>
                 <span className="dash-mono dash-bold">{threshold}</span>
               </div>
               <input
@@ -84,12 +96,12 @@ export function PlaygroundSection() {
                 step="0.05"
                 value={threshold}
                 onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                style={{ width: "100%", accentColor: "#141414" }}
+                style={{ width: "100%", accentColor: "#141414", marginTop: "6px" }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "12px", fontWeight: 600, display: "block" }}>Top-K Limit</label>
+              <label style={{ fontSize: "12px", fontWeight: 600, display: "block", marginBottom: "6px" }}>Top-K Limit</label>
               <select
                 style={{ width: "100%", background: "#fff", border: "1.5px solid #141414", borderRadius: "12px", padding: "10px", fontSize: "14px", fontWeight: 600 }}
                 value={topK}
@@ -102,59 +114,103 @@ export function PlaygroundSection() {
             </div>
           </div>
 
+          <div style={{ display: "flex", gap: "8px", marginTop: "16px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--mut)", alignSelf: "center" }}>Quick Prompts:</span>
+            {[
+              "invoice pagination standard",
+              "fastify rate limiter config",
+              "background queue retry policy"
+            ].map((qp) => (
+              <button
+                key={qp}
+                className="dash-pill dash-pill-white dash-pill-sm"
+                style={{ fontSize: "11.5px", padding: "4px 10px" }}
+                onClick={() => setQuery(qp)}
+              >
+                "{qp}"
+              </button>
+            ))}
+          </div>
+
           <button
             className="dash-pill dash-pill-dark dash-pill-big"
             style={{ width: "100%", marginTop: "24px" }}
             onClick={handleTestQuery}
+            disabled={isExecuting}
           >
-            {isExecuting ? "⚡ Searching Vector Space..." : "🚀 Execute Recall Search"}
+            {isExecuting ? (
+              <>
+                <span className="dash-spin">⚙️</span>
+                <span>Searching Vector Space...</span>
+              </>
+            ) : (
+              "🚀 Execute Recall Search"
+            )}
           </button>
+
+          {apiError && (
+            <div style={{ marginTop: "14px", padding: "10px 14px", borderRadius: "10px", background: "rgba(233, 226, 58, 0.25)", border: "1px solid var(--ink)", fontSize: "12px" }}>
+              <strong>Notice:</strong> Backend offline ({apiError}). Showing mock vector search fallback.
+            </div>
+          )}
         </div>
 
         {/* RESULTS */}
         <div className="dash-box">
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
             <div>
               <h3>Results & "Why this memory?"</h3>
-              <p className="dash-sub">Feature #1 Explainability & Prompt Injection Preview</p>
+              <p className="dash-sub">Explainability breakdown & prompt injection preview</p>
             </div>
-            <span className="dash-badge dash-badge-green">3 Matches Found</span>
+            <span className={`dash-badge ${results.length > 0 ? "dash-badge-green" : "dash-badge-yellow"}`}>
+              {results.length} Match{results.length === 1 ? "" : "es"} (Threshold: {threshold})
+            </span>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-            {mockResults.slice(0, topK).map((res, idx) => (
-              <div key={res.id} style={{ background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "18px", padding: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
-                  <span className="dash-badge dash-badge-dark">#{idx + 1}</span>
-                  <span style={{ fontWeight: 700, fontSize: "16px", color: "#141414", flex: 1 }}>{res.title}</span>
-                  <span className="dash-badge dash-badge-dark">{(res.finalScore * 100).toFixed(1)}% Match</span>
-                </div>
+          {results.length === 0 ? (
+            <div style={{ padding: "40px", textAlign: "center", background: "var(--bg)", border: "1.5px dashed var(--ink)", borderRadius: "18px" }}>
+              <span style={{ fontSize: "32px", display: "block", marginBottom: "8px" }}>🔍</span>
+              <strong style={{ fontSize: "16px" }}>No memories reached threshold {threshold}</strong>
+              <p className="dash-sub" style={{ marginTop: "6px" }}>
+                Try lowering the cosine similarity threshold (e.g. 0.50) or capture a new observation in the Memories Hub.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              {results.slice(0, topK).map((res, idx) => (
+                <div key={res.id || idx} style={{ background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "18px", padding: "20px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+                    <span className="dash-badge dash-badge-dark">#{idx + 1}</span>
+                    <span style={{ fontWeight: 700, fontSize: "16px", color: "#141414", flex: 1 }}>{res.title}</span>
+                    <span className="dash-badge dash-badge-dark">{(res.finalScore * 100).toFixed(1)}% Match</span>
+                  </div>
 
-                <div style={{ background: "#fff", border: "1.5px solid var(--line)", borderRadius: "12px", padding: "14px", marginBottom: "14px" }}>
-                  <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 800, color: "#666", marginBottom: "8px" }}>Why this memory?</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                      <span>Cosine Similarity</span>
-                      <b className="dash-mono">{(res.similarity * 100).toFixed(1)}%</b>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                      <span>Recency Boost</span>
-                      <span className="dash-badge dash-badge-green">{res.recencyBoost}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                      <span>RLS Permission</span>
-                      <span className="dash-badge dash-badge-white">{res.accessRule}</span>
+                  <div style={{ background: "#fff", border: "1.5px solid var(--line)", borderRadius: "12px", padding: "14px", marginBottom: "14px" }}>
+                    <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 800, color: "#666", marginBottom: "8px" }}>Why this memory?</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                        <span>Cosine Similarity</span>
+                        <b className="dash-mono">{(res.similarity * 100).toFixed(1)}%</b>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                        <span>Recency Boost</span>
+                        <span className="dash-badge dash-badge-green">{res.recencyBoost || "+2%"}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                        <span>RLS Permission</span>
+                        <span className="dash-badge dash-badge-white">{res.accessRule || "PASSED"}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ background: "#141414", borderRadius: "14px", padding: "14px", color: "#e8e8e8" }}>
-                  <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "8px" }}>Injected Markdown Snippet</div>
-                  <pre style={{ margin: 0, fontSize: "13px" }}><code>{res.injectedMarkdown}</code></pre>
+                  <div style={{ background: "#141414", borderRadius: "14px", padding: "14px", color: "#e8e8e8" }}>
+                    <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "8px" }}>Injected Markdown Snippet</div>
+                    <pre style={{ margin: 0, fontSize: "13px", whiteSpace: "pre-wrap", wordBreak: "break-word" }}><code>{res.injectedMarkdown}</code></pre>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
