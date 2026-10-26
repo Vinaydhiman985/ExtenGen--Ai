@@ -76,8 +76,54 @@ export function generateMockEmbedding(text: string, dimensions: number = 1536): 
   return vector;
 }
 
+let localPipelinePromise: Promise<any> | null = null;
+
+async function getLocalEmbeddingPipeline() {
+  if (!localPipelinePromise) {
+    localPipelinePromise = (async () => {
+      try {
+        const { pipeline } = await import('@xenova/transformers');
+        return await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+      } catch (err) {
+        console.warn('⚠️ Could not initialize @xenova/transformers:', err);
+        return null;
+      }
+    })();
+  }
+  return localPipelinePromise;
+}
+
 /**
- * Generate vector embedding for given text using OpenAI text-embedding-3-small or fallback mock.
+ * Generate real neural embedding using HuggingFace all-MiniLM-L6-v2 running locally on CPU.
+ * Zero-pads to targetDimensions (1536) preserving cosine similarity for pgvector compatibility.
+ */
+export async function generateLocalNeuralEmbedding(text: string, targetDimensions: number = 1536): Promise<number[] | null> {
+  try {
+    const pipe = await getLocalEmbeddingPipeline();
+    if (!pipe) return null;
+
+    const output = await pipe(text.slice(0, 2000), {
+      pooling: 'mean',
+      normalize: true,
+    });
+
+    const rawVector: Float32Array = output.data;
+    const padded = new Array(targetDimensions).fill(0);
+    for (let i = 0; i < rawVector.length && i < targetDimensions; i++) {
+      padded[i] = rawVector[i];
+    }
+    return padded;
+  } catch (err) {
+    console.warn('⚠️ Error during local neural embedding extraction:', err);
+    return null;
+  }
+}
+
+/**
+ * Generate vector embedding for given text using:
+ * 1. OpenAI text-embedding-3-small (if real API key provided)
+ * 2. Real local neural model via @xenova/transformers all-MiniLM-L6-v2 (Zero API cost)
+ * 3. Feature hashing fallback
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   const client = getOpenAIClient();
@@ -86,14 +132,19 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     try {
       const response = await client.embeddings.create({
         model: env.EMBEDDING_MODEL,
-        input: text.slice(0, 8000), // Protect against token limits
+        input: text.slice(0, 8000),
         dimensions: env.EMBEDDING_DIMENSIONS,
       });
       return response.data[0].embedding;
     } catch (error) {
-      console.warn('⚠️ OpenAI API call failed, falling back to mock embeddings:', error);
-      return generateMockEmbedding(text, env.EMBEDDING_DIMENSIONS);
+      console.warn('⚠️ OpenAI API call failed, falling back to local neural embeddings:', error);
     }
+  }
+
+  // 100% Real Neural Embedding locally on CPU
+  const localVec = await generateLocalNeuralEmbedding(text, env.EMBEDDING_DIMENSIONS);
+  if (localVec) {
+    return localVec;
   }
 
   return generateMockEmbedding(text, env.EMBEDDING_DIMENSIONS);
@@ -114,12 +165,17 @@ export async function generateBatchEmbeddings(texts: string[]): Promise<number[]
       });
       return response.data.map(item => item.embedding);
     } catch (error) {
-      console.warn('⚠️ OpenAI Batch API call failed, falling back to mock embeddings:', error);
-      return texts.map(t => generateMockEmbedding(t, env.EMBEDDING_DIMENSIONS));
+      console.warn('⚠️ OpenAI Batch API call failed, falling back to local neural embeddings:', error);
     }
   }
 
-  return texts.map(t => generateMockEmbedding(t, env.EMBEDDING_DIMENSIONS));
+  // Process batch using real neural transformer
+  const results: number[][] = [];
+  for (const text of texts) {
+    const vec = await generateLocalNeuralEmbedding(text, env.EMBEDDING_DIMENSIONS);
+    results.push(vec || generateMockEmbedding(text, env.EMBEDDING_DIMENSIONS));
+  }
+  return results;
 }
 
 /**

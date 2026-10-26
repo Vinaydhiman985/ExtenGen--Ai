@@ -31,18 +31,24 @@ export const githubRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Otherwise fetch from GitHub REST API
-    const result = await fetchAndIngestFromGitHubAPI(
-      tenant,
-      body.repo,
-      body.token,
-      body.limit || 10
-    );
+    try {
+      const result = await fetchAndIngestFromGitHubAPI(
+        tenant,
+        body.repo,
+        body.token,
+        body.limit || 10
+      );
 
-    return reply.status(200).send({
-      success: true,
-      repo: body.repo,
-      ...result,
-    });
+      return reply.status(200).send({
+        success: true,
+        repo: body.repo,
+        ...result,
+      });
+    } catch (err: any) {
+      return reply.status(400).send({
+        error: err.message || 'Failed to ingest from GitHub API',
+      });
+    }
   });
 
   // GitHub Webhook listener (for automated push / pull_request events)

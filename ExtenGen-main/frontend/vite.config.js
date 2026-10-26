@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: true, // Exposes on real LAN IP (e.g. http://10.94.17.216:5173)
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3000',
@@ -34,6 +35,18 @@ export default defineConfig({
             }
           });
         },
+      },
+      '/openapi.json': {
+        target: 'http://127.0.0.1:3000',
+        changeOrigin: true,
+      },
+      '/sse': {
+        target: 'http://127.0.0.1:3000',
+        changeOrigin: true,
+      },
+      '/messages': {
+        target: 'http://127.0.0.1:3000',
+        changeOrigin: true,
       },
     },
   },

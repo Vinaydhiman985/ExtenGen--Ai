@@ -294,14 +294,14 @@ export async function fetchObservations({ limit = 50, source } = {}) {
       isBackendEmpty: uiObservations.length === 0
     };
   } catch (err) {
-    // API failed or offline - graceful fallback to mock data
+    // API offline or unreachable
     notifyStatus({ isLive: false, error: err.message });
     return {
       ok: false,
       isLive: false,
       isFallback: true,
       error: err.message,
-      observations: MOCK_MEMORIES
+      observations: []
     };
   }
 }
@@ -395,20 +395,216 @@ export async function recallContext({
       results: formattedResults
     };
   } catch (err) {
-    // Graceful fallback to simulated results in demo mode
     notifyStatus({ isLive: false, error: err.message });
-
-    // Filter mock results by similarity threshold simulation
-    const simulated = MOCK_RECALL_RESULTS.filter(r => r.similarity >= similarityThreshold).slice(0, limit);
 
     return {
       ok: false,
       isLive: false,
       isFallback: true,
       error: err.message,
-      matchesCount: simulated.length,
-      formattedContext: simulated.map(s => s.injectedMarkdown).join("\n\n---\n\n"),
-      results: simulated
+      matchesCount: 0,
+      formattedContext: "",
+      results: []
     };
   }
 }
+
+/**
+ * Ingest a GitHub repository's commits and PRs into shared memory
+ * Calls POST /api/v1/ingest/github on the backend
+ */
+export async function ingestGitHub({
+  repo,
+  token,
+  limit = 10
+}) {
+  try {
+    const res = await fetch("/api/v1/ingest/github", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo, token: token || undefined, limit }),
+      signal: AbortSignal.timeout(30000)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Failed with status ${res.status}`);
+    }
+
+    const data = await res.json();
+    notifyStatus({ isLive: true, error: null });
+
+    return {
+      ok: true,
+      repo: data.repo || repo,
+      ingestedCommits: data.ingestedCommits || 0,
+      ingestedPRs: data.ingestedPRs || 0,
+      totalIngested: (data.ingestedCommits || 0) + (data.ingestedPRs || 0),
+      observationIds: data.observationIds || []
+    };
+  } catch (err) {
+    notifyStatus({ isLive: false, error: err.message });
+    return {
+      ok: false,
+      error: err.message
+    };
+  }
+}
+
+/**
+ * Fetch real system statistics directly from PostgreSQL
+ */
+export async function fetchSystemStats() {
+  try {
+    const res = await fetch("/api/v1/stats", { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return { ok: true, data };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Fetch active live connected MCP agents
+ */
+export async function fetchActiveAgents() {
+  try {
+    const res = await fetch("/api/v1/agents/active", { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return { ok: true, data };
+  } catch (err) {
+    return { ok: false, error: err.message, data: { count: 0, agents: [] } };
+  }
+}
+
+/**
+ * Simulate connecting/disconnecting an agent
+ */
+export async function simulateAgentConnection(action = "connect", agentName = "Claude Code (Live CLI)") {
+  try {
+    const res = await fetch("/api/v1/agents/simulate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, agentName }),
+    });
+    const data = await res.json();
+    return { ok: true, data };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Run real end-to-end multi-agent collaboration proof in the browser:
+ * 1. Agent A stores an architectural decision
+ * 2. Agent B queries recall with related question
+ * 3. Returns the exact proof details
+ */
+export async function runMultiAgentSimulation({
+  decisionTitle = "Stripe Webhook Idempotency Standard",
+  decisionContent = "All webhook handlers must verify stripe-signature header and persist idempotency_key with 24h Redis TTL before dispatching business events.",
+  query = "How to handle Stripe webhook signature and duplicate payments?"
+} = {}) {
+  try {
+    // Step 1: Agent A stores
+    const storeRes = await fetch("/api/v1/observations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: decisionTitle,
+        content: decisionContent,
+        source: "agent_session",
+        tags: ["architecture", "stripe", "webhooks"],
+        metadata: {
+          agent_name: "Claude Code CLI",
+          session_id: `agent_a_${Date.now()}`
+        },
+        immediateEmbed: true,
+      })
+    });
+
+    const storeData = await storeRes.json();
+    if (!storeRes.ok) throw new Error(storeData.error || "Agent A store failed");
+
+    // Step 2: Agent B recalls
+    const recallRes = await fetch("/api/v1/context/recall", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        limit: 3,
+        similarity_threshold: 0.25,
+      })
+    });
+
+    const recallData = await recallRes.json();
+    if (!recallRes.ok) throw new Error(recallData.error || "Agent B recall failed");
+
+    return {
+      ok: true,
+      agentA: {
+        id: storeData.observation?.id,
+        title: decisionTitle,
+        content: decisionContent,
+        author: "Agent A (Claude Code)",
+      },
+      agentB: {
+        query,
+        author: "Agent B (Cursor IDE)",
+        matchesCount: recallData.matchesCount || 0,
+        topMatch: recallData.observations?.[0] || null,
+        formattedContext: recallData.formattedContext || ""
+      }
+    };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * Subscribe to backend real-time Server-Sent Events stream (/api/v1/events)
+ * Emits live updates when agents connect, call tools, or disconnect
+ */
+export function subscribeToLiveEvents(onEvent) {
+  try {
+    const eventSource = new EventSource("/api/v1/events");
+
+    eventSource.addEventListener("sync", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        onEvent({ type: "sync", payload: data });
+      } catch {}
+    });
+
+    eventSource.addEventListener("agent_connected", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        onEvent(data);
+      } catch {}
+    });
+
+    eventSource.addEventListener("agent_activity", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        onEvent(data);
+      } catch {}
+    });
+
+    eventSource.addEventListener("agent_disconnected", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        onEvent(data);
+      } catch {}
+    });
+
+    return () => {
+      eventSource.close();
+    };
+  } catch (err) {
+    console.warn("Could not connect to SSE events stream:", err);
+    return () => {};
+  }
+}
+

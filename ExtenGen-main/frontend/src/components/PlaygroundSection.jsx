@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { recallContext, MOCK_RECALL_RESULTS } from "../services/api.js";
+import { recallContext } from "../services/api.js";
 
 export function PlaygroundSection() {
   const [query, setQuery] = useState("how do we handle invoice pagination and rate limits?");
   const [threshold, setThreshold] = useState(0.20);
   const [topK, setTopK] = useState(3);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [results, setResults] = useState(MOCK_RECALL_RESULTS);
-  const [matchesCount, setMatchesCount] = useState(3);
+  const [results, setResults] = useState([]);
+  const [matchesCount, setMatchesCount] = useState(0);
   const [isLive, setIsLive] = useState(false);
   const [hasExecuted, setHasExecuted] = useState(false);
   const [apiError, setApiError] = useState(null);

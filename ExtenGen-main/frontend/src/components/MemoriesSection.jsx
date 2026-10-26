@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fetchObservations, createObservation, MOCK_MEMORIES } from "../services/api.js";
+import { fetchObservations, createObservation, subscribeToLiveEvents } from "../services/api.js";
 
 export function MemoriesSection({ initialTab = "Indexed" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -7,8 +7,8 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
   const [selectedTag, setSelectedTag] = useState("all");
   const [selectedMemory, setSelectedMemory] = useState(null);
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(true);
-  const [memories, setMemories] = useState(MOCK_MEMORIES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [memories, setMemories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -20,9 +20,17 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createFeedback, setCreateFeedback] = useState(null);
 
-  // Load memories on component mount
+  // Load memories on component mount and subscribe to live SSE updates
   useEffect(() => {
     loadMemories();
+
+    const unsubscribe = subscribeToLiveEvents((event) => {
+      if (event.type === "agent_activity" || event.type === "agent_connected" || event.type === "sync") {
+        loadMemories();
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadMemories = async () => {
@@ -30,12 +38,11 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
     try {
       const result = await fetchObservations({ limit: 50 });
       setIsLive(result.isLive);
-      if (result.observations && result.observations.length > 0) {
-        setMemories(result.observations);
-      }
+      setMemories(result.observations || []);
     } catch (err) {
-      console.warn("Failed to fetch memories, using fallback:", err);
+      console.warn("Failed to fetch memories:", err);
       setIsLive(false);
+      setMemories([]);
     } finally {
       setIsLoading(false);
     }
@@ -46,9 +53,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
     try {
       const result = await fetchObservations({ limit: 50 });
       setIsLive(result.isLive);
-      if (result.observations && result.observations.length > 0) {
-        setMemories(result.observations);
-      }
+      setMemories(result.observations || []);
     } finally {
       setIsRefreshing(false);
     }

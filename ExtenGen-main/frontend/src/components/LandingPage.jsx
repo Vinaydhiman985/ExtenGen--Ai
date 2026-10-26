@@ -67,8 +67,14 @@ function Nav({ onOpenDashboard }) {
         >
           📊 App Dashboard
         </button>
-        <a className="pill white" href="https://github.com" target="_blank" rel="noreferrer">
-          GitHub
+        <a
+          className="pill white"
+          href="https://github.com/Vinaydhiman985/ExtenGen--Ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
+        >
+          <span>🐙</span> GitHub
         </a>
       </div>
     </header>
@@ -186,10 +192,18 @@ export function LandingPage({ onGoToDashboard }) {
             >
               🚀 Launch App Dashboard
             </button>
-            <a className="pill ghost big" href="#">Read the docs</a>
+            <a
+              className="pill ghost big"
+              href="https://github.com/Vinaydhiman985/ExtenGen--Ai#readme"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none" }}
+            >
+              📖 Read the Docs
+            </a>
           </div>
-          <pre className="install">claude mcp add extengen -- npx extengen-mcp</pre>
-          <small>Placeholder command. Replace it with your real install step.</small>
+          <pre className="install">claude mcp add extengen http://localhost:3000/sse</pre>
+          <small>Universal MCP Server running on port 3000 (Supports Cursor, Claude, Windsurf, VS Code)</small>
         </div>
       </section>
 

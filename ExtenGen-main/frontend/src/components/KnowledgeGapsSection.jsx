@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { createObservation } from "../services/api.js";
 
 export function KnowledgeGapsSection({ onNavigateToMemories }) {
   const [createGapModal, setCreateGapModal] = useState(null);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [createdSuccess, setCreatedSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const gaps = [
     {
@@ -55,14 +57,31 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
     setNewContent(`Standard operating procedure for: ${gap.topic}\n\nKey decisions & rules:\n1. ...`);
   };
 
-  const handleSubmitMemory = (e) => {
+  const handleSubmitMemory = async (e) => {
     e.preventDefault();
-    setCreatedSuccess(true);
-    setTimeout(() => {
-      setCreatedSuccess(false);
-      setCreateGapModal(null);
-      onNavigateToMemories("Proposed");
-    }, 1200);
+    if (!newContent.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      await createObservation({
+        title: newTitle,
+        content: newContent,
+        source: "manual",
+        tags: createGapModal?.tags || ["knowledge-gap"],
+        immediateEmbed: true,
+      });
+
+      setCreatedSuccess(true);
+      setTimeout(() => {
+        setCreatedSuccess(false);
+        setCreateGapModal(null);
+        if (onNavigateToMemories) onNavigateToMemories("Indexed");
+      }, 1000);
+    } catch (err) {
+      console.error("Failed to create gap resolution memory:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

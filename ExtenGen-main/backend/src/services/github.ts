@@ -27,6 +27,16 @@ export interface IngestGitHubRepoInput {
   githubToken?: string;
 }
 
+export function cleanRepoIdentifier(input: string): string {
+  if (!input) return '';
+  let cleaned = input.trim();
+  cleaned = cleaned.replace(/^https?:\/\/github\.com\//i, '');
+  cleaned = cleaned.replace(/^git@github\.com:/i, '');
+  cleaned = cleaned.replace(/\.git$/i, '');
+  cleaned = cleaned.replace(/^\/+|\/+$/g, '');
+  return cleaned;
+}
+
 /**
  * Ingest GitHub Commits and PRs into ExtenGen memory store.
  */
@@ -34,7 +44,8 @@ export async function ingestGitHubRepo(
   tenant: TenantContext,
   input: IngestGitHubRepoInput
 ): Promise<{ ingestedCommits: number; ingestedPRs: number; observationIds: string[] }> {
-  const { repo, branch = 'main', commits = [], pullRequests = [] } = input;
+  const repo = cleanRepoIdentifier(input.repo);
+  const { branch = 'main', commits = [], pullRequests = [] } = input;
   const observationIds: string[] = [];
 
   // Ingest Commits
@@ -99,10 +110,15 @@ export async function ingestGitHubRepo(
  */
 export async function fetchAndIngestFromGitHubAPI(
   tenant: TenantContext,
-  repo: string,
+  rawRepo: string,
   token?: string,
   limit = 10
 ): Promise<{ ingestedCommits: number; ingestedPRs: number; observationIds: string[] }> {
+  const repo = cleanRepoIdentifier(rawRepo);
+  if (!repo || !repo.includes('/')) {
+    throw new Error(`Invalid repository format "${rawRepo}". Expected "owner/repo" or GitHub repository URL.`);
+  }
+
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'ExtenGen-Shared-Memory-Agent',
@@ -120,36 +136,48 @@ export async function fetchAndIngestFromGitHubAPI(
     const commitsRes = await fetch(`https://api.github.com/repos/${repo}/commits?per_page=${limit}`, { headers });
     if (commitsRes.ok) {
       const commitData = await commitsRes.json() as any[];
-      for (const item of commitData) {
-        commits.push({
-          hash: item.sha,
-          message: item.commit.message,
-          author: item.commit.author?.name || item.author?.login || 'unknown',
-          date: item.commit.author?.date,
-        });
-      }
-    }
-
-    // 2. Fetch merged PRs
-    const prsRes = await fetch(`https://api.github.com/repos/${repo}/pulls?state=closed&per_page=${limit}`, { headers });
-    if (prsRes.ok) {
-      const prData = await prsRes.json() as any[];
-      for (const item of prData) {
-        if (item.merged_at) {
-          pullRequests.push({
-            number: item.number,
-            title: item.title,
-            body: item.body || '',
-            author: item.user?.login || 'unknown',
-            mergedAt: item.merged_at,
-            baseBranch: item.base?.ref,
-            headBranch: item.head?.ref,
+      if (Array.isArray(commitData)) {
+        for (const item of commitData) {
+          commits.push({
+            hash: item.sha,
+            message: item.commit?.message || 'No commit message',
+            author: item.commit?.author?.name || item.author?.login || 'unknown',
+            date: item.commit?.author?.date,
           });
         }
       }
+    } else {
+      const errJson = await commitsRes.json().catch(() => ({})) as any;
+      throw new Error(`GitHub API error (${commitsRes.status}): ${errJson?.message || commitsRes.statusText}. For private repos or rate limits, provide a GitHub Personal Access Token.`);
     }
-  } catch (error) {
-    console.warn(`Could not fetch from GitHub API for ${repo}:`, error);
+
+    // 2. Fetch merged PRs (non-fatal if repository has no PRs)
+    try {
+      const prsRes = await fetch(`https://api.github.com/repos/${repo}/pulls?state=closed&per_page=${limit}`, { headers });
+      if (prsRes.ok) {
+        const prData = await prsRes.json() as any[];
+        if (Array.isArray(prData)) {
+          for (const item of prData) {
+            if (item.merged_at) {
+              pullRequests.push({
+                number: item.number,
+                title: item.title,
+                body: item.body || '',
+                author: item.user?.login || 'unknown',
+                mergedAt: item.merged_at,
+                baseBranch: item.base?.ref,
+                headBranch: item.head?.ref,
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // PRs are optional
+    }
+  } catch (error: any) {
+    console.warn(`Could not fetch from GitHub API for ${repo}:`, error.message);
+    throw error;
   }
 
   return ingestGitHubRepo(tenant, {

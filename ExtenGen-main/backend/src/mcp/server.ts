@@ -120,10 +120,15 @@ const TOOLS_DEFINITIONS: Tool[] = [
   },
 ];
 
+export type McpToolCallback = (toolName: string, args: any, result: any) => void;
+
 /**
  * Create a configured MCP Server instance attached to a specific TenantContext
  */
-export function createExtenGenMcpServer(tenantContext: TenantContext): Server {
+export function createExtenGenMcpServer(
+  tenantContext: TenantContext,
+  onToolCall?: McpToolCallback
+): Server {
   const server = new Server(
     {
       name: 'extengen-memory-server',
@@ -148,22 +153,35 @@ export function createExtenGenMcpServer(tenantContext: TenantContext): Server {
     const { name, arguments: args } = request.params;
 
     try {
+      let result;
       switch (name) {
         case 'store_observation':
-          return await handleStoreObservation(tenantContext, args as any);
+          result = await handleStoreObservation(tenantContext, args as any);
+          break;
 
         case 'recall_context':
-          return await handleRecallContext(tenantContext, args as any);
+          result = await handleRecallContext(tenantContext, args as any);
+          break;
 
         case 'list_observations':
-          return await handleListObservations(tenantContext, args as any);
+          result = await handleListObservations(tenantContext, args as any);
+          break;
 
         case 'ingest_github':
-          return await handleIngestGitHub(tenantContext, args as any);
+          result = await handleIngestGitHub(tenantContext, args as any);
+          break;
 
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
+
+      if (onToolCall) {
+        try {
+          onToolCall(name, args, result);
+        } catch {}
+      }
+
+      return result;
     } catch (error: any) {
       return {
         content: [

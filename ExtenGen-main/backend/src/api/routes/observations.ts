@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { resolveAuthContext } from '../../services/auth.js';
-import { storeObservation, listObservations } from '../../services/observations.js';
+import { storeObservation, listObservations, getSystemStats } from '../../services/observations.js';
 
 export const observationRoutes: FastifyPluginAsync = async (fastify) => {
   // Capture observation
@@ -13,19 +13,30 @@ export const observationRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Field "content" is required.' });
     }
 
-    const observation = await storeObservation(tenant, {
-      content: body.content,
-      title: body.title,
-      source: body.source || 'api',
-      tags: body.tags,
-      metadata: body.metadata,
-      immediateEmbed: body.immediateEmbed === true,
-    });
+    if (typeof body.content !== 'string' || body.content.trim().length === 0) {
+      return reply.status(400).send({ error: 'Field "content" must be a non-empty string.' });
+    }
 
-    return reply.status(201).send({
-      success: true,
-      observation,
-    });
+    try {
+      const observation = await storeObservation(tenant, {
+        content: body.content,
+        title: body.title,
+        source: body.source || 'api',
+        tags: body.tags,
+        metadata: body.metadata,
+        immediateEmbed: body.immediateEmbed === true,
+      });
+
+      return reply.status(201).send({
+        success: true,
+        observation,
+      });
+    } catch (err: any) {
+      if (err?.message?.includes('cannot be empty')) {
+        return reply.status(400).send({ error: err.message });
+      }
+      throw err; // Let Fastify handle unexpected errors as 500
+    }
   });
 
   // List recent observations
@@ -43,5 +54,13 @@ export const observationRoutes: FastifyPluginAsync = async (fastify) => {
       count: observations.length,
       observations,
     };
+  });
+
+  // Get real-time system metrics and statistics
+  fastify.get('/api/v1/stats', async (request, reply) => {
+    const authHeader = request.headers.authorization;
+    const tenant = await resolveAuthContext(authHeader);
+    const stats = await getSystemStats(tenant);
+    return stats;
   });
 };

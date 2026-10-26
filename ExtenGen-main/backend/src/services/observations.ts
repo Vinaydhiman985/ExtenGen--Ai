@@ -321,6 +321,67 @@ export async function listObservations(
 }
 
 /**
+ * Query real system metrics and statistics directly from PostgreSQL or in-memory store.
+ */
+export async function getSystemStats(tenant: TenantContext): Promise<{
+  totalMemories: number;
+  indexedCount: number;
+  sourcesBreakdown: Record<string, number>;
+  tagsBreakdown: Record<string, number>;
+  recentMemories: Observation[];
+}> {
+  const pool = getDbPool();
+  if (pool) {
+    try {
+      return await withTenantContext(tenant, async (client) => {
+        const countRes = await client.query('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = \'indexed\') as indexed FROM observations');
+        const sourcesRes = await client.query('SELECT source, COUNT(*) as count FROM observations GROUP BY source');
+        const recentRes = await client.query('SELECT id, org_id, user_id, source, title, content, metadata, status, created_at, updated_at FROM observations ORDER BY created_at DESC LIMIT 10');
+
+        const sourcesBreakdown: Record<string, number> = {};
+        for (const row of sourcesRes.rows) {
+          sourcesBreakdown[row.source] = parseInt(row.count, 10);
+        }
+
+        return {
+          totalMemories: parseInt(countRes.rows[0]?.total || '0', 10),
+          indexedCount: parseInt(countRes.rows[0]?.indexed || '0', 10),
+          sourcesBreakdown,
+          tagsBreakdown: {},
+          recentMemories: recentRes.rows,
+        };
+      });
+    } catch {
+      // Fallback if table query fails
+    }
+  }
+
+  // In-memory fallback
+  const tenantObs = Array.from(memoryStore.values()).filter(o => o.org_id === tenant.orgId);
+  const sourcesBreakdown: Record<string, number> = {};
+  const tagsBreakdown: Record<string, number> = {};
+
+  for (const obs of tenantObs) {
+    sourcesBreakdown[obs.source] = (sourcesBreakdown[obs.source] || 0) + 1;
+    const tags = (obs.metadata?.tags as string[]) || [];
+    for (const tag of tags) {
+      tagsBreakdown[tag] = (tagsBreakdown[tag] || 0) + 1;
+    }
+  }
+
+  return {
+    totalMemories: tenantObs.length,
+    indexedCount: tenantObs.filter(o => o.status === 'indexed').length,
+    sourcesBreakdown,
+    tagsBreakdown,
+    recentMemories: tenantObs
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 10)
+      .map(({ embedding, ...rest }) => rest as Observation),
+  };
+}
+
+/**
  * Clear in-memory store (used for tests)
  */
 export function clearMemoryStore(): void {

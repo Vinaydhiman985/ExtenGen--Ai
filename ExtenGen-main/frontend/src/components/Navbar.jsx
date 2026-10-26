@@ -12,6 +12,7 @@ export function Navbar({
   const [selectedOrg, setSelectedOrg] = useState("Acme Corp (Prod)");
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [apiStatus, setApiStatus] = useState({ isLive: false, checked: false });
+  const [activeAgentsCount, setActiveAgentsCount] = useState(0);
 
   useEffect(() => {
     // Initial health check
@@ -20,7 +21,25 @@ export function Navbar({
     const unsubscribe = subscribeApiStatus((status) => {
       setApiStatus(status);
     });
-    return unsubscribe;
+
+    const checkAgents = async () => {
+      try {
+        const res = await fetch("/api/v1/agents/active");
+        if (res.ok) {
+          const d = await res.json();
+          setActiveAgentsCount(d.count || 0);
+        }
+      } catch {
+        // Fallback
+      }
+    };
+    checkAgents();
+    const interval = setInterval(checkAgents, 4000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const orgs = ["Acme Corp (Prod)", "Staging Org", "Dev Sandbox", "Personal Workspace"];
@@ -106,8 +125,13 @@ export function Navbar({
         </div>
 
         {/* Connect Agent */}
-        <button className="dash-pill dash-pill-dark dash-pill-sm" onClick={onOpenOnboarding}>
-          ⚡ Connect Agent
+        <button className="dash-pill dash-pill-dark dash-pill-sm" onClick={onOpenOnboarding} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span>⚡ Connect Agent</span>
+          {activeAgentsCount > 0 && (
+            <span style={{ background: "#10b981", color: "#ffffff", padding: "2px 7px", borderRadius: "10px", fontSize: "11px", fontWeight: "bold" }}>
+              {activeAgentsCount} Online
+            </span>
+          )}
         </button>
       </div>
     </header>

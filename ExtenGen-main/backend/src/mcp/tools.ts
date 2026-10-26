@@ -14,7 +14,7 @@ export const StoreObservationSchema = {
 export const RecallContextSchema = {
   query: z.string().min(1).describe('The semantic search query, question, or task description to find relevant prior memories and decisions for.'),
   limit: z.number().int().min(1).max(20).optional().default(5).describe('Maximum number of relevant observations to recall.'),
-  similarity_threshold: z.number().min(0).max(1).optional().default(0.50).describe('Minimum cosine similarity threshold (0.0 to 1.0).'),
+  similarity_threshold: z.number().min(0).max(1).optional().default(0.30).describe('Minimum cosine similarity threshold (0.0 to 1.0). Default 0.30 matches REST API behavior.'),
   sources: z.array(z.string()).optional().describe('Optional list of sources to filter by (e.g. ["agent_session", "github_commit"]).'),
   tags: z.array(z.string()).optional().describe('Optional list of tags to filter by.'),
 };

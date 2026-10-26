@@ -10,6 +10,14 @@ export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCou
       badge: null
     },
     {
+      id: "simulator",
+      name: "Multi-Agent Collab",
+      icon: "🤖",
+      desc: "Live cross-agent proof lab",
+      badge: "PROOF",
+      badgeColor: "green"
+    },
+    {
       id: "activity",
       name: "Activity",
       icon: "⚡",
