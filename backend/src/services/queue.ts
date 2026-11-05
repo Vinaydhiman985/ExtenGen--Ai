@@ -12,7 +12,8 @@ export interface EmbedJobData {
 
 const QUEUE_NAME = 'observation-embedding-queue';
 
-let redisConnection: Redis | null = null;
+let queueConnection: Redis | null = null;
+let workerConnection: Redis | null = null;
 let embedQueue: Queue<EmbedJobData> | null = null;
 let embedWorker: Worker<EmbedJobData> | null = null;
 
@@ -37,13 +38,18 @@ export function initQueue(): { queue: Queue<EmbedJobData> | null; worker: Worker
   }
 
   try {
-    redisConnection = new Redis(env.REDIS_URL, {
+    queueConnection = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      lazyConnect: true,
+    });
+
+    workerConnection = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: null,
       lazyConnect: true,
     });
 
     embedQueue = new Queue<EmbedJobData>(QUEUE_NAME, {
-      connection: redisConnection,
+      connection: queueConnection,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -60,10 +66,10 @@ export function initQueue(): { queue: Queue<EmbedJobData> | null; worker: Worker
       async (job: Job<EmbedJobData>) => {
         await processEmbedJob(job.data);
       },
-      { connection: redisConnection, concurrency: 5 }
+      { connection: workerConnection, concurrency: 5 }
     );
 
-    embedWorker.on('completed', (job) => {
+    embedWorker.on('completed', (_job) => {
       // Completed job
     });
 
@@ -144,8 +150,12 @@ export async function closeQueue(): Promise<void> {
     await embedQueue.close();
     embedQueue = null;
   }
-  if (redisConnection) {
-    await redisConnection.quit();
-    redisConnection = null;
+  if (workerConnection) {
+    await workerConnection.quit();
+    workerConnection = null;
+  }
+  if (queueConnection) {
+    await queueConnection.quit();
+    queueConnection = null;
   }
 }

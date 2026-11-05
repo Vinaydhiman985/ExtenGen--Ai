@@ -1,5 +1,6 @@
 import { storeObservation, recallContext, clearMemoryStore } from '../services/observations.js';
 import { runSeed, DUMMY_ORGS, DUMMY_USERS } from './seed.js';
+import { closeDb } from '../db/client.js';
 
 const SLEEP = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -41,7 +42,7 @@ async function runDemo() {
   });
 
   console.log(`✅ [ExtenGen] Stored Observation ID: ${obs.id}`);
-  console.log(`⚡ [ExtenGen] Background Worker generated 1536-dim vector embedding & indexed in pgvector.\n`);
+  console.log(`⚡ [ExtenGen] Background Worker generated 768-dim vector embedding & indexed in pgvector.\n`);
   await SLEEP(1000);
 
   // ---------------------------------------------------------------------------
@@ -66,7 +67,7 @@ async function runDemo() {
   const recallResult = await recallContext(orgA, {
     query: 'webhook idempotency handling Redis pattern',
     limit: 3,
-    similarityThreshold: 0.40,
+    similarityThreshold: 0.50,
   });
 
   console.log('📥 [ExtenGen Server Response]');
@@ -85,12 +86,15 @@ async function runDemo() {
   const orgBRecall = await recallContext(orgB, {
     query: 'webhook idempotency handling Redis pattern',
     limit: 3,
-    similarityThreshold: 0.40,
+    similarityThreshold: 0.55,
   });
 
   console.log(`📊 Org B Matches Found: ${orgBRecall.matchesCount}`);
-  if (orgBRecall.matchesCount === 0) {
+  const leakDetected = orgBRecall.observations.some(o => o.org_id !== orgB.orgId || (o.title && o.title.includes('Stripe')));
+  if (!leakDetected && orgBRecall.matchesCount === 0) {
     console.log('🛡️ [RLS Verification Passed] Org B receives 0 results! Org A\'s memories are 100% isolated.\n');
+  } else if (!leakDetected) {
+    console.log(`🛡️ [RLS Verification Passed] 0 results leaked from Org A! All ${orgBRecall.matchesCount} returned observations strictly belong to Org B.\n`);
   } else {
     console.error('❌ SECURITY BREACH: Cross-tenant leakage detected!');
   }
@@ -100,17 +104,18 @@ async function runDemo() {
   const orgBOwnRecall = await recallContext(orgB, {
     query: 'arc reactor firmware frequency specs',
     limit: 2,
-    similarityThreshold: 0.40,
+    similarityThreshold: 0.50,
   });
   console.log(`📊 Org B Matches Found for own memory: ${orgBOwnRecall.matchesCount}`);
   console.log(orgBOwnRecall.formattedContext);
 
   printBanner('🎉 End-to-End Pipeline Demonstration Complete!');
   console.log('✅ Capture  -> store_observation');
-  console.log('✅ Embed    -> text-embedding-3-small (1536 dims)');
+  console.log('✅ Embed    -> Google gemini-embedding-001 (768 dims)');
   console.log('✅ Store    -> PostgreSQL + pgvector + RLS');
   console.log('✅ Retrieve -> recall_context (cosine similarity search)');
   console.log('✅ Inject   -> Markdown prompt block for LLM prompt context\n');
+  await closeDb();
 }
 
 runDemo().catch((err) => {

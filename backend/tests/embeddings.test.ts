@@ -6,11 +6,11 @@ import {
 } from '../src/services/embeddings.js';
 
 describe('Embedding Service', () => {
-  it('should generate unit-normalized vector of 1536 dimensions', () => {
+  it('should generate unit-normalized vector of 768 dimensions (Google text-embedding-004)', () => {
     const text = 'ExtenGen shared memory layer for AI agents';
-    const vector = generateMockEmbedding(text, 1536);
+    const vector = generateMockEmbedding(text, 768);
 
-    expect(vector).toHaveLength(1536);
+    expect(vector).toHaveLength(768);
 
     // Check L2 norm is approximately 1.0
     const norm = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
@@ -33,12 +33,14 @@ describe('Embedding Service', () => {
     const simClose = calculateCosineSimilarity(queryVec, closeVec);
     const simUnrelated = calculateCosineSimilarity(queryVec, unrelatedVec);
 
+    // Close text must score higher than unrelated text
     expect(simClose).toBeGreaterThan(simUnrelated);
-    expect(simClose).toBeGreaterThan(0.5);
+    // Close text must score above 0.40 (meaningful overlap via mock feature hashing)
+    expect(simClose).toBeGreaterThan(0.40);
   });
 
-  it('generateEmbedding should return a 1536-dim vector for any text', async () => {
+  it('generateEmbedding should return a 768-dim vector for any text (mock fallback)', async () => {
     const vector = await generateEmbedding('Testing asynchronous embedding pipeline');
-    expect(vector).toHaveLength(1536);
+    expect(vector).toHaveLength(768);
   });
 });

@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { TenantContext } from '../db/schema.js';
-import { storeObservation, recallContext, listObservations } from '../services/observations.js';
+import { recallContext, listObservations } from '../services/observations.js';
+import {
+  ContradictionEvaluator,
+  storeObservationWithContradictionCheck,
+} from '../services/contradictions.js';
 import { ingestGitHubRepo, fetchAndIngestFromGitHubAPI } from '../services/github.js';
 
 export const StoreObservationSchema = {
@@ -9,12 +13,14 @@ export const StoreObservationSchema = {
   source: z.string().optional().default('agent_session').describe('Source of the observation (e.g. agent_session, manual, documentation).'),
   tags: z.array(z.string()).optional().describe('List of tags/keywords for filtering (e.g. ["database", "auth", "billing"]).'),
   metadata: z.record(z.unknown()).optional().describe('Arbitrary structured metadata (e.g. file paths, commit hashes, session ID).'),
+  confirm_contradictions: z.boolean().optional().default(false).describe('Set to true only after the user explicitly confirms storing an observation that the previous call flagged as contradictory.'),
 };
 
 export const RecallContextSchema = {
   query: z.string().min(1).describe('The semantic search query, question, or task description to find relevant prior memories and decisions for.'),
   limit: z.number().int().min(1).max(20).optional().default(5).describe('Maximum number of relevant observations to recall.'),
   similarity_threshold: z.number().min(0).max(1).optional().default(0.50).describe('Minimum cosine similarity threshold (0.0 to 1.0).'),
+  recency_weight: z.number().min(0).optional().default(0.01).describe('Exponential recency decay rate λ in days⁻¹; higher values favor newer observations (default: 0.01). Set to 0 to disable recency decay.'),
   sources: z.array(z.string()).optional().describe('Optional list of sources to filter by (e.g. ["agent_session", "github_commit"]).'),
   tags: z.array(z.string()).optional().describe('Optional list of tags to filter by.'),
 };
@@ -35,15 +41,36 @@ export const IngestGitHubSchema = {
  */
 export async function handleStoreObservation(
   tenant: TenantContext,
-  args: z.input<z.ZodObject<typeof StoreObservationSchema>>
+  args: z.input<z.ZodObject<typeof StoreObservationSchema>>,
+  evaluator?: ContradictionEvaluator
 ) {
-  const result = await storeObservation(tenant, {
+  const result = await storeObservationWithContradictionCheck(tenant, {
     content: args.content,
     title: args.title,
     source: args.source,
     tags: args.tags,
     metadata: args.metadata,
-  });
+  }, args.confirm_contradictions === true, evaluator);
+
+  if (!result.stored) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify({
+            success: false,
+            stored: false,
+            warning: 'This observation may contradict existing team knowledge. Ask the user whether to store it. If confirmed, repeat the same call with confirm_contradictions: true.',
+            contradictions: result.contradictions,
+          }, null, 2),
+        },
+      ],
+      _meta: {
+        contradictionDetected: true,
+        stored: false,
+      },
+    };
+  }
 
   return {
     content: [
@@ -52,15 +79,21 @@ export async function handleStoreObservation(
         text: JSON.stringify(
           {
             success: true,
+            stored: true,
             message: 'Observation captured and queued for semantic embedding.',
             observation: {
-              id: result.id,
-              org_id: result.org_id,
-              source: result.source,
-              title: result.title,
-              created_at: result.created_at,
-              status: result.status,
+              id: result.observation.id,
+              org_id: result.observation.org_id,
+              source: result.observation.source,
+              title: result.observation.title,
+              created_at: result.observation.created_at,
+              status: result.observation.status,
             },
+            superseded: result.superseded.map(conflict => ({
+              id: conflict.id,
+              title: conflict.title,
+              reason: conflict.reason,
+            })),
           },
           null,
           2
@@ -81,6 +114,7 @@ export async function handleRecallContext(
     query: args.query,
     limit: args.limit,
     similarityThreshold: args.similarity_threshold,
+    recencyWeight: args.recency_weight,
     sources: args.sources,
     tags: args.tags,
   });
@@ -129,6 +163,9 @@ export async function handleListObservations(
               source: o.source,
               content: o.content.slice(0, 150) + (o.content.length > 150 ? '...' : ''),
               status: o.status,
+              superseded_by: o.superseded_by || null,
+              superseded_at: o.superseded_at || null,
+              supersession_reason: o.supersession_reason || null,
               created_at: o.created_at,
               metadata: o.metadata,
             })),

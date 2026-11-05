@@ -63,6 +63,9 @@ export interface Observation {
   status: ObservationStatus;
   created_at: string;
   updated_at: string;
+  superseded_by?: string | null;
+  superseded_at?: string | null;
+  supersession_reason?: string | null;
 }
 
 export interface ScoredObservation extends Observation {

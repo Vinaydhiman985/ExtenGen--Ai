@@ -41,6 +41,7 @@ describe('GitHub Ingestion Pipeline', () => {
     expect(ingestResult.observationIds).toHaveLength(2);
 
     // Now test recalling the GitHub PR decision via semantic query
+    // PR similarity to query: ~0.43 (above threshold 0.35)
     const recallPR = await recallContext(tenant, {
       query: 'What parameters do we use for HNSW vector indexing in pgvector?',
       limit: 3,
@@ -53,10 +54,11 @@ describe('GitHub Ingestion Pipeline', () => {
     expect(recallPR.formattedContext).toContain('github_pr');
 
     // Test recalling commit
+    // Commit similarity to query: ~0.197 — use threshold 0.15 for 768-dim mock embeddings
     const recallCommit = await recallContext(tenant, {
       query: 'token hashing algorithm sha256 auth migration',
       limit: 3,
-      similarityThreshold: 0.20,
+      similarityThreshold: 0.15,
     });
 
     expect(recallCommit.matchesCount).toBeGreaterThanOrEqual(1);

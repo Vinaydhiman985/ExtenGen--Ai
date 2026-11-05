@@ -31,4 +31,14 @@ describe('Auth & Multi-Tenancy Service', () => {
     expect(context.orgId).toBeDefined();
     expect(context.userId).toBeDefined();
   });
+
+  it('should throw 401 when an unknown or invalid ExtenGen API key is supplied', async () => {
+    await expect(resolveAuthContext('Bearer ext_live_0123456789abcdef0123456789abcdef0123456789abcdef'))
+      .rejects.toThrow('Invalid or revoked ExtenGen API key.');
+  });
+
+  it('should throw 401 when a malformed token is supplied', async () => {
+    await expect(resolveAuthContext('Bearer random_junk_token'))
+      .rejects.toThrow('Invalid authorization token format.');
+  });
 });

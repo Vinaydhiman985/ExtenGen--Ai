@@ -22,7 +22,7 @@ describe('MCP Tools Handlers', () => {
       content: 'All database tables must have id, created_at, and updated_at columns.',
       source: 'agent_session',
       tags: ['database', 'standards'],
-    });
+    }, async () => []);
 
     expect(res.content).toHaveLength(1);
     expect(res.content[0].type).toBe('text');
@@ -40,7 +40,7 @@ describe('MCP Tools Handlers', () => {
       content: 'We use Redis caching with a 5-minute TTL for all public product catalog endpoints.',
       source: 'agent_session',
       tags: ['caching', 'redis', 'performance'],
-    });
+    }, async () => []);
 
     // Run recall tool
     const res = await handleRecallContext(tenant, {
@@ -60,16 +60,16 @@ describe('MCP Tools Handlers', () => {
     await handleStoreObservation(tenant, {
       title: 'Memory 1',
       content: 'Observation content number one.',
-    });
+    }, async () => []);
     await handleStoreObservation(tenant, {
       title: 'Memory 2',
       content: 'Observation content number two.',
-    });
+    }, async () => []);
 
     const res = await handleListObservations(tenant, { limit: 10 });
     const parsed = JSON.parse(res.content[0].text);
 
-    expect(parsed.count).toBeGreaterThanOrEqual(2);
-    expect(parsed.observations.length).toBeGreaterThanOrEqual(2);
+    expect(parsed.count).toBe(2);
+    expect(parsed.observations).toHaveLength(2);
   });
 });

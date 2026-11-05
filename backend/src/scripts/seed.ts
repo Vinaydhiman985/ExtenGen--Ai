@@ -1,4 +1,4 @@
-import { getDbPool, withTenantContext } from '../db/client.js';
+import { getDbPool, withTenantContext, closeDb } from '../db/client.js';
 import { generateApiKey } from '../services/auth.js';
 import { storeObservation } from '../services/observations.js';
 
@@ -65,6 +65,12 @@ export async function runSeed(): Promise<void> {
        ON CONFLICT (key_hash) DO NOTHING`,
       [acmeKey.keyHash, acmeKey.keyPrefix, DUMMY_ORGS.acme.id, DUMMY_USERS.alice.id]
     );
+
+    // Clean up prior observations for dummy test orgs to ensure idempotent clean seed
+    await pool.query(
+      `DELETE FROM observations WHERE org_id = ANY($1)`,
+      [[DUMMY_ORGS.acme.id, DUMMY_ORGS.stark.id]]
+    );
   }
 
   // 4. Seed Acme Observations (Org 1)
@@ -100,7 +106,10 @@ export async function runSeed(): Promise<void> {
 
 if (process.argv[1] && process.argv[1].endsWith('seed.ts')) {
   runSeed()
-    .then(() => process.exit(0))
+    .then(async () => {
+      await closeDb();
+      process.exit(0);
+    })
     .catch((err) => {
       console.error('Seeding failed:', err);
       process.exit(1);

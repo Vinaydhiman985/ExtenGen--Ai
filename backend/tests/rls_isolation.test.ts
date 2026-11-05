@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { storeObservation, recallContext, clearMemoryStore } from '../src/services/observations.js';
 
 describe('Multi-Tenant Isolation (RLS Verification)', () => {
@@ -14,6 +14,10 @@ describe('Multi-Tenant Isolation (RLS Verification)', () => {
 
   beforeEach(() => {
     clearMemoryStore();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should store observations scoped to specific org_id', async () => {
@@ -82,5 +86,43 @@ describe('Multi-Tenant Isolation (RLS Verification)', () => {
     expect(starkOwnRecall.matchesCount).toBeGreaterThanOrEqual(1);
     expect(starkOwnRecall.observations[0].title).toContain('Stark Arc Reactor');
     expect(starkOwnRecall.observations.every(o => o.org_id === tenantStark.orgId)).toBe(true);
+  });
+
+  it('should rank newer observations higher when recency decay is enabled', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    await storeObservation(tenantAcme, {
+      content: 'Use a shared Redis cache for product catalog responses.',
+      metadata: { label: 'older' },
+      immediateEmbed: true,
+    });
+
+    vi.setSystemTime(new Date('2026-04-11T00:00:00.000Z'));
+    await storeObservation(tenantAcme, {
+      content: 'Use a shared Redis cache for product catalog responses.',
+      metadata: { label: 'newer' },
+      immediateEmbed: true,
+    });
+
+    const decayedRecall = await recallContext(tenantAcme, {
+      query: 'shared Redis cache product catalog responses',
+      similarityThreshold: 0,
+      recencyWeight: 0.01,
+    });
+    expect(decayedRecall.observations.map(observation => observation.metadata.label)).toEqual([
+      'newer',
+      'older',
+    ]);
+
+    const undecayedRecall = await recallContext(tenantAcme, {
+      query: 'shared Redis cache product catalog responses',
+      similarityThreshold: 0,
+      recencyWeight: 0,
+    });
+    expect(undecayedRecall.observations.map(observation => observation.metadata.label)).toEqual([
+      'older',
+      'newer',
+    ]);
   });
 });
