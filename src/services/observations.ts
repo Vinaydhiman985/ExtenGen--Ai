@@ -24,12 +24,14 @@ export interface StoreObservationInput {
   tags?: string[];
   metadata?: ObservationMetadata;
   immediateEmbed?: boolean; // Useful in tests or sync runs
+  supersedes?: Array<{ id: string; reason: string }>;
 }
 
 export interface RecallContextInput {
   query: string;
   limit?: number;
   similarityThreshold?: number;
+  recencyWeight?: number;
   sources?: string[];
   tags?: string[];
 }
@@ -74,6 +76,9 @@ export async function storeObservation(
     status: 'pending_embedding',
     created_at: now,
     updated_at: now,
+    superseded_by: null,
+    superseded_at: null,
+    supersession_reason: null,
   };
 
   if (pool) {
@@ -81,7 +86,8 @@ export async function storeObservation(
       const result = await client.query(
         `INSERT INTO observations (id, org_id, user_id, source, title, content, metadata, status, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id, org_id, user_id, source, title, content, metadata, embedding, status, created_at, updated_at`,
+         RETURNING id, org_id, user_id, source, title, content, metadata, embedding, status, created_at, updated_at,
+                   superseded_by, superseded_at, supersession_reason`,
         [
           id,
           tenant.orgId,
@@ -96,9 +102,53 @@ export async function storeObservation(
         ]
       );
       observation = result.rows[0];
+
+      if (input.supersedes?.length) {
+        const superseded = await client.query(
+          `UPDATE observations
+           SET superseded_by = $1,
+               superseded_at = now(),
+               supersession_reason = conflict.reason,
+               updated_at = now()
+           FROM unnest($2::uuid[], $3::text[]) AS conflict(id, reason)
+           WHERE observations.id = conflict.id
+             AND observations.org_id = $4
+             AND observations.superseded_by IS NULL
+           RETURNING observations.id`,
+          [
+            id,
+            input.supersedes.map(conflict => conflict.id),
+            input.supersedes.map(conflict => conflict.reason),
+            tenant.orgId,
+          ]
+        );
+
+        if (superseded.rowCount !== input.supersedes.length) {
+          throw new Error('One or more conflicting observations are no longer active; review the conflict again.');
+        }
+      }
     });
   } else {
     memoryStore.set(id, observation);
+    for (const conflict of input.supersedes || []) {
+      const existing = memoryStore.get(conflict.id);
+      if (
+        !existing
+        || existing.org_id !== tenant.orgId
+        || existing.superseded_by
+      ) {
+        memoryStore.delete(id);
+        throw new Error('One or more conflicting observations are no longer active; review the conflict again.');
+      }
+    }
+
+    for (const conflict of input.supersedes || []) {
+      const existing = memoryStore.get(conflict.id)!;
+      existing.superseded_by = id;
+      existing.superseded_at = now;
+      existing.supersession_reason = conflict.reason;
+      existing.updated_at = now;
+    }
   }
 
   // Prepare full text representation including title and tags for comprehensive semantic recall
@@ -151,9 +201,14 @@ export async function recallContext(
     query,
     limit = 5,
     similarityThreshold = 0.50,
+    recencyWeight = 0.01,
     sources,
     tags,
   } = input;
+
+  if (!Number.isFinite(recencyWeight) || recencyWeight < 0) {
+    throw new Error('recencyWeight must be a finite, non-negative number.');
+  }
 
   if (!query || query.trim().length === 0) {
     return {
@@ -175,11 +230,13 @@ export async function recallContext(
       
       let sql = `
         SELECT id, org_id, user_id, source, title, content, metadata, created_at, updated_at,
+               superseded_by, superseded_at, supersession_reason,
                (1 - (embedding <=> $1::vector)) AS similarity
         FROM observations
         WHERE org_id = $2
           AND embedding IS NOT NULL
           AND status = 'indexed'
+          AND superseded_by IS NULL
           AND (1 - (embedding <=> $1::vector)) >= $3
       `;
       const params: (string | number | string[])[] = [vectorLiteral, tenant.orgId, similarityThreshold];
@@ -189,7 +246,17 @@ export async function recallContext(
         sql += ` AND source = ANY($${params.length})`;
       }
 
-      sql += ` ORDER BY embedding <=> $1::vector ASC LIMIT $${params.length + 1}`;
+      if (tags && tags.length > 0) {
+        params.push(tags);
+        sql += ` AND (metadata->'tags' IS NOT NULL AND metadata->'tags' ?| $${params.length})`;
+      }
+
+      params.push(recencyWeight);
+      const recencyWeightParam = params.length;
+      sql += ` ORDER BY
+        (1 - (embedding <=> $1::vector))
+        * EXP(-$${recencyWeightParam}::double precision * GREATEST(0.0, EXTRACT(EPOCH FROM (now() - created_at)) / 86400.0)::double precision) DESC
+        LIMIT $${params.length + 1}`;
       params.push(limit);
 
       const result = await client.query(sql, params);
@@ -201,7 +268,10 @@ export async function recallContext(
   } else {
     // In-memory vector similarity search
     const allOrgObservations = Array.from(memoryStore.values()).filter(
-      obs => obs.org_id === tenant.orgId && obs.embedding && obs.embedding.length > 0
+      obs => obs.org_id === tenant.orgId
+        && !obs.superseded_by
+        && obs.embedding
+        && obs.embedding.length > 0
     );
 
     const scored: ScoredObservation[] = [];
@@ -224,7 +294,16 @@ export async function recallContext(
       }
     }
 
-    scored.sort((a, b) => b.similarity - a.similarity);
+    const now = Date.now();
+    const score = (observation: ScoredObservation) => {
+      const ageInDays = Math.max(
+        0,
+        (now - new Date(observation.created_at).getTime()) / 86_400_000
+      );
+      return observation.similarity * Math.exp(-recencyWeight * ageInDays);
+    };
+
+    scored.sort((a, b) => score(b) - score(a));
     matches = scored.slice(0, limit);
   }
 
