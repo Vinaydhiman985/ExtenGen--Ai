@@ -43,6 +43,10 @@ const TOOLS_DEFINITIONS: Tool[] = [
           type: 'object',
           description: 'Optional structured metadata (e.g. file paths, commit hash, session id).',
         },
+        confirm_contradictions: {
+          type: 'boolean',
+          description: 'Set to true only after the user explicitly confirms storing an observation that the previous call flagged as contradictory.',
+        },
       },
       required: ['content'],
     },
@@ -64,6 +68,10 @@ const TOOLS_DEFINITIONS: Tool[] = [
         similarity_threshold: {
           type: 'number',
           description: 'Minimum cosine similarity threshold between 0.0 and 1.0 (default: 0.50).',
+        },
+        recency_weight: {
+          type: 'number',
+          description: 'Exponential recency decay rate λ in days⁻¹; higher values favor newer observations (default: 0.01). Set to 0 to disable recency decay.',
         },
         sources: {
           type: 'array',

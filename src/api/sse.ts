@@ -15,7 +15,8 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
     // Create MCP Server for this tenant
     const server = createExtenGenMcpServer(tenant);
 
-    // Raw Node.js response for SSE streaming
+    // Hijack Fastify's response lifecycle to handle raw SSE stream
+    reply.hijack();
     const res = reply.raw;
     const transport = new SSEServerTransport('/messages', res);
     const sessionId = transport.sessionId;
@@ -42,6 +43,7 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: `Session ${sessionId} not found.` });
     }
 
+    reply.hijack();
     await transport.handlePostMessage(request.raw, reply.raw, request.body);
   });
 };
