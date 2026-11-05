@@ -9,6 +9,8 @@ export interface GeneratedApiKey {
   keyHash: string;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Generate a secure ExtenGen API key (e.g. ext_live_abc123...)
  */
@@ -36,8 +38,8 @@ export function hashApiKey(rawKey: string): string {
  * Resolve an authorization token or API key header into a verified TenantContext
  */
 export async function resolveAuthContext(authHeader?: string): Promise<TenantContext> {
-  // If no auth header provided, check if we have default org/user configured (e.g. local CLI mode)
-  if (!authHeader) {
+  // If no auth header provided, fallback to default org/user for local CLI mode
+  if (!authHeader || authHeader.trim().length === 0) {
     return {
       orgId: env.DEFAULT_ORG_ID,
       userId: env.DEFAULT_USER_ID,
@@ -46,8 +48,15 @@ export async function resolveAuthContext(authHeader?: string): Promise<TenantCon
   }
 
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (token.length === 0) {
+    return {
+      orgId: env.DEFAULT_ORG_ID,
+      userId: env.DEFAULT_USER_ID,
+      role: 'agent',
+    };
+  }
 
-  // 1. Check for standard ExtenGen API Key
+  // 1. Check for standard ExtenGen API Key (ext_live_... or ext_test_...)
   if (token.startsWith('ext_')) {
     const keyHash = hashApiKey(token);
     const pool = getDbPool();
@@ -73,13 +82,17 @@ export async function resolveAuthContext(authHeader?: string): Promise<TenantCon
         console.error('Error querying api_key from database:', err);
       }
     }
+
+    const error = new Error('Invalid or revoked ExtenGen API key.');
+    (error as any).statusCode = 401;
+    throw error;
   }
 
-  // 2. Direct format for tests or CLI passing JSON/UUID header: `org_id[:user_id]`
+  // 2. Direct format for tests or CLI passing UUID header: `org_id[:user_id]`
   const parts = token.split(':');
-  if (parts.length >= 1 && parts[0].length >= 8) {
+  if (parts.length >= 1 && UUID_REGEX.test(parts[0])) {
     const orgId = parts[0];
-    const userId = parts[1] || null;
+    const userId = parts[1] && UUID_REGEX.test(parts[1]) ? parts[1] : (parts[1] || null);
     return {
       orgId,
       userId,
@@ -87,10 +100,8 @@ export async function resolveAuthContext(authHeader?: string): Promise<TenantCon
     };
   }
 
-  // Fallback to default
-  return {
-    orgId: env.DEFAULT_ORG_ID,
-    userId: env.DEFAULT_USER_ID,
-    role: 'agent',
-  };
+  // Reject invalid / unrecognized authorization token
+  const error = new Error('Invalid authorization token format.');
+  (error as any).statusCode = 401;
+  throw error;
 }
