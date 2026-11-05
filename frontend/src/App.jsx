@@ -1,4 +1,17 @@
+import React, { useState } from "react";
 import "./index.css";
+import "./dashboard.css";
+import { Navbar } from "./components/Navbar";
+import { Sidebar } from "./components/Sidebar";
+import { CommandPalette } from "./components/CommandPalette";
+import { OnboardingModal } from "./components/OnboardingModal";
+import { OverviewSection } from "./components/OverviewSection";
+import { ActivitySection } from "./components/ActivitySection";
+import { MemoriesSection } from "./components/MemoriesSection";
+import { PlaygroundSection } from "./components/PlaygroundSection";
+import { KnowledgeGapsSection } from "./components/KnowledgeGapsSection";
+import { GitHubSyncSection } from "./components/GitHubSyncSection";
+import { MultiAgentCollabSection } from "./components/MultiAgentCollabSection";
 
 const links = [
   ["How it works", "#how"],
@@ -46,12 +59,19 @@ const access = [
 const stack = ["Node.js + TypeScript", "Fastify", "MCP SDK", "PostgreSQL + pgvector", "Supabase Auth + RLS", "OpenAI embeddings", "Redis + BullMQ", "Railway / Vercel"];
 const next = ["Slack bot", "Automated PR reviewer", "Call transcripts", "Self-surfacing skills"];
 
-function Nav() {
+function Nav({ onOpenDashboard }) {
   return (
     <header className="nav">
       <a className="logo" href="#top">extengen</a>
       <nav>{links.map(([t, h]) => <a key={h} href={h}>{t}</a>)}</nav>
       <div className="nav-cta">
+        <button
+          className="pill dark"
+          onClick={onOpenDashboard}
+          style={{ cursor: "pointer", border: "none", font: "inherit" }}
+        >
+          📊 Dashboard
+        </button>
         <a className="pill white" href="#">GitHub</a>
         <a className="pill dark" href="#start">Get started</a>
       </div>
@@ -59,16 +79,21 @@ function Nav() {
   );
 }
 
-function Hero() {
+function Hero({ onOpenDashboard }) {
   return (
     <section className="hero" id="top">
-      {/* Swap the blobs for a real video: <video className="bg" src="/hero.mp4" autoPlay muted loop playsInline /> */}
       <div className="blob b1" /><div className="blob b2" /><div className="blob b3" /><div className="shade" />
       <div className="hero-in">
         <h1>Your agent forgot.<br />ExtenGen didn't.</h1>
         <p>ExtenGen is a lightweight, self-hostable memory layer that saves what your team decides and feeds it back into every future agent prompt.</p>
         <div className="row">
-          <a className="pill white big" href="#start">Get started</a>
+          <button
+            className="pill white big"
+            onClick={onOpenDashboard}
+            style={{ cursor: "pointer", border: "none", font: "inherit" }}
+          >
+            📊 Open Dashboard
+          </button>
           <a className="pill ghost big" href="#how">See how it works</a>
         </div>
       </div>
@@ -86,87 +111,188 @@ const Head = ({ title, text }) => (
 );
 
 export default function App() {
-  return (
-    <>
-      <Nav />
-      <Hero />
+  const [view, setView] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "dashboard" || window.location.hash === "#dashboard") {
+        return "dashboard";
+      }
+    }
+    return "landing";
+  });
+  const [activeSection, setActiveSection] = useState("overview");
+  const [memoriesSubTab, setMemoriesSubTab] = useState("Indexed");
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-      <div className="strip">
-        <span>Works with any MCP-compatible agent</span>
-        <b>Claude Code</b><b>Cursor</b><b>Codex</b>
-      </div>
+  const switchView = (newView) => {
+    setView(newView);
+    if (typeof window !== "undefined") {
+      if (newView === "dashboard") {
+        window.location.hash = "dashboard";
+      } else {
+        if (window.location.hash === "#dashboard") {
+          history.pushState(null, "", window.location.pathname + window.location.search);
+        }
+      }
+    }
+  };
 
-      <section className="sec">
-        <Head title="Every session starts from zero." text="Decisions, context and reasons live in old chats, pull requests and people's heads." />
-        <div className="cols3">
-          {problems.map(([t, d]) => <div className="blk" key={t}><h3>{t}</h3><p>{d}</p></div>)}
+  const handleSelectSection = (sectionId, subTab = null) => {
+    switchView("dashboard");
+    if (sectionId === "onboarding") {
+      setIsOnboardingOpen(true);
+      return;
+    }
+    setActiveSection(sectionId);
+    if (subTab) {
+      setMemoriesSubTab(subTab);
+    }
+  };
+
+  if (view === "landing") {
+    return (
+      <>
+        <Nav onOpenDashboard={() => switchView("dashboard")} />
+        <Hero onOpenDashboard={() => switchView("dashboard")} />
+
+        <div className="strip">
+          <span>Works with any MCP-compatible agent</span>
+          <b>Claude Code</b><b>Cursor</b><b>Codex</b>
         </div>
-      </section>
 
-      <section className="sec" id="how">
-        <div className="split">
-          <Head title="Memory that works while you don't." text="ExtenGen quietly captures useful context from agent sessions and GitHub, then brings it back when a related task shows up. Example activity from a small team." />
-          <ol className="tl">
-            {feed.map(([time, t, d]) => <li key={time}><time>{time}</time><strong>{t}</strong><span>{d}</span></li>)}
-          </ol>
-        </div>
-      </section>
+        <section className="sec">
+          <Head title="Every session starts from zero." text="Decisions, context and reasons live in old chats, pull requests and people's heads." />
+          <div className="cols3">
+            {problems.map(([t, d]) => <div className="blk" key={t}><h3>{t}</h3><p>{d}</p></div>)}
+          </div>
+        </section>
 
-      <section className="sec">
-        <Head title="Five steps from session to memory." />
-        <div className="steps">
-          {steps.map(([t, d], i) => (
-            <div className={"step" + (i === 4 ? " last" : "")} key={t}>
-              <em>{i + 1}</em><h3>{t}</h3><p>{d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+        <section className="sec" id="how">
+          <div className="split">
+            <Head title="Memory that works while you don't." text="ExtenGen quietly captures useful context from agent sessions and GitHub, then brings it back when a related task shows up. Example activity from a small team." />
+            <ol className="tl">
+              {feed.map(([time, t, d]) => <li key={time}><time>{time}</time><strong>{t}</strong><span>{d}</span></li>)}
+            </ol>
+          </div>
+        </section>
 
-      <section className="sec" id="tools">
-        <Head title="Two tools. That's the whole interface." text="Add the ExtenGen MCP server and your agent gets both." />
-        <div className="cols2">
-          {tools.map(([n, d, code]) => (
-            <div className="card" key={n}><h3 className="mono">{n}</h3><p>{d}</p><pre>{code}</pre></div>
-          ))}
-        </div>
-      </section>
-
-      <section className="sec" id="security">
-        <div className="split center">
-          <Head title="Agents only recall what you're allowed to see." text="Access rules sit in the database itself, on every row, so a clever prompt can't get around them. Scoped by organisation and user, with Postgres row-level security through Supabase." />
-          <div className="rows">
-            {access.map(([t, ok]) => (
-              <div key={t}><span>{t}</span><b className={ok ? "ok" : "no"}>{ok ? "Returned" : "Hidden"}</b></div>
+        <section className="sec">
+          <Head title="Five steps from session to memory." />
+          <div className="steps">
+            {steps.map(([t, d], i) => (
+              <div className={"step" + (i === 4 ? " last" : "")} key={t}>
+                <em>{i + 1}</em><h3>{t}</h3><p>{d}</p>
+              </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="sec" id="stack">
-        <Head title="Small on purpose." text="Two ingestion sources, one access point, and a stack a student team can run on free tiers." />
-        <div className="chips">{stack.map((s) => <span key={s}>{s}</span>)}</div>
-        <p className="mut">Planned next</p>
-        <div className="chips dashed">{next.map((s) => <span key={s}>{s}</span>)}</div>
-      </section>
-
-      <section className="cta-card" id="start">
-        <div className="blob b1" /><div className="blob b3" /><div className="shade" />
-        <div className="hero-in">
-          <h2>Give your agents a memory.</h2>
-          <div className="row">
-            <a className="pill white big" href="#">View on GitHub</a>
-            <a className="pill ghost big" href="#">Read the docs</a>
+        <section className="sec" id="tools">
+          <Head title="Two tools. That's the whole interface." text="Add the ExtenGen MCP server and your agent gets both." />
+          <div className="cols2">
+            {tools.map(([n, d, code]) => (
+              <div className="card" key={n}><h3 className="mono">{n}</h3><p>{d}</p><pre>{code}</pre></div>
+            ))}
           </div>
-          <pre className="install">claude mcp add extengen -- npx extengen-mcp</pre>
-          <small>Placeholder command. Replace it with your real install step.</small>
-        </div>
-      </section>
+        </section>
 
-      <footer>
-        <span>© 2026 ExtenGen · B.Tech CSE project, Shri Ramswaroop Memorial University</span>
-        <span>Vinay Dhiman · Sreedharan · Mohammad Anas · Neeraj Chauhan</span>
-      </footer>
-    </>
+        <section className="sec" id="security">
+          <div className="split center">
+            <Head title="Agents only recall what you're allowed to see." text="Access rules sit in the database itself, on every row, so a clever prompt can't get around them. Scoped by organisation and user, with Postgres row-level security through Supabase." />
+            <div className="rows">
+              {access.map(([t, ok]) => (
+                <div key={t}><span>{t}</span><b className={ok ? "ok" : "no"}>{ok ? "Returned" : "Hidden"}</b></div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="sec" id="stack">
+          <Head title="Small on purpose." text="Two ingestion sources, one access point, and a stack a student team can run on free tiers." />
+          <div className="chips">{stack.map((s) => <span key={s}>{s}</span>)}</div>
+          <p className="mut">Planned next</p>
+          <div className="chips dashed">{next.map((s) => <span key={s}>{s}</span>)}</div>
+        </section>
+
+        <section className="cta-card" id="start">
+          <div className="blob b1" /><div className="blob b3" /><div className="shade" />
+          <div className="hero-in">
+            <h2>Give your agents a memory.</h2>
+            <div className="row">
+              <button
+                className="pill white big"
+                onClick={() => switchView("dashboard")}
+                style={{ cursor: "pointer", border: "none", font: "inherit" }}
+              >
+                📊 Open Dashboard
+              </button>
+              <a className="pill ghost big" href="#">Read the docs</a>
+            </div>
+            <pre className="install">claude mcp add extengen -- npx extengen-mcp</pre>
+            <small>Placeholder command. Replace it with your real install step.</small>
+          </div>
+        </section>
+
+        <footer>
+          <span>© 2026 ExtenGen · B.Tech CSE project, Shri Ramswaroop Memorial University</span>
+          <span>Vinay Dhiman · Sreedharan · Mohammad Anas · Neeraj Chauhan</span>
+        </footer>
+      </>
+    );
+  }
+
+  return (
+    <div className="dash-app">
+      <Navbar
+        activeView={view}
+        setActiveView={switchView}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+      />
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={setIsCommandPaletteOpen}
+        onSelectSection={handleSelectSection}
+      />
+
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+      />
+
+      <div className="dash-layout">
+        <Sidebar
+          activeSection={activeSection}
+          setActiveSection={setActiveSection}
+          pendingCount={3}
+          gapsCount={4}
+          mobileOpen={mobileMenuOpen}
+          setMobileOpen={setMobileMenuOpen}
+        />
+
+        <main className="dash-content">
+          {activeSection === "overview" && (
+            <OverviewSection onNavigateToSection={handleSelectSection} />
+          )}
+          {activeSection === "simulator" && <MultiAgentCollabSection />}
+          {activeSection === "activity" && <ActivitySection />}
+          {activeSection === "memories" && (
+            <MemoriesSection initialTab={memoriesSubTab} key={memoriesSubTab} />
+          )}
+          {activeSection === "playground" && <PlaygroundSection />}
+          {activeSection === "gaps" && (
+            <KnowledgeGapsSection onNavigateToMemories={handleSelectSection} />
+          )}
+          {activeSection === "github" && (
+            <GitHubSyncSection onNavigateToMemories={handleSelectSection} />
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
