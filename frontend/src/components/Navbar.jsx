@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { checkHealth, subscribeApiStatus } from "../services/api.js";
+import { checkHealth, subscribeApiStatus, AVAILABLE_ORGS, getActiveOrg, setActiveOrg, subscribeActiveOrg } from "../services/api.js";
 
 export function Navbar({
   activeView,
@@ -9,7 +9,7 @@ export function Navbar({
   mobileMenuOpen,
   setMobileMenuOpen
 }) {
-  const [selectedOrg, setSelectedOrg] = useState("Acme Corp (Prod)");
+  const [currentOrg, setCurrentOrg] = useState(getActiveOrg());
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [apiStatus, setApiStatus] = useState({ isLive: false, checked: false });
   const [activeAgentsCount, setActiveAgentsCount] = useState(0);
@@ -20,6 +20,10 @@ export function Navbar({
     // Subscribe to status updates from API calls
     const unsubscribe = subscribeApiStatus((status) => {
       setApiStatus(status);
+    });
+
+    const unsubOrg = subscribeActiveOrg((org) => {
+      setCurrentOrg(org);
     });
 
     const checkAgents = async () => {
@@ -38,6 +42,7 @@ export function Navbar({
 
     return () => {
       unsubscribe();
+      unsubOrg();
       clearInterval(interval);
     };
   }, []);
@@ -100,24 +105,25 @@ export function Navbar({
             className="dash-pill dash-pill-white dash-pill-sm"
             onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
           >
-            <span>🏢 {selectedOrg}</span>
+            <span>🏢 {currentOrg.name}</span>
             <span>▾</span>
           </button>
 
           {orgDropdownOpen && (
-            <div className="dash-modal-card" style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: "230px", padding: "10px", zIndex: 60 }}>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, padding: "4px 8px", color: "var(--mut)" }}>Switch Organization</div>
-              {orgs.map((org) => (
+            <div className="dash-modal-card" style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: "260px", padding: "10px", zIndex: 60 }}>
+              <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, padding: "4px 8px", color: "var(--mut)" }}>Switch Organization (Multi-Tenant RLS)</div>
+              {AVAILABLE_ORGS.map((org) => (
                 <button
-                  key={org}
-                  className="dash-sidebar-item"
-                  style={{ borderRadius: "8px", padding: "8px 10px" }}
+                  key={org.id}
+                  className={`dash-sidebar-item ${currentOrg.id === org.id ? 'active' : ''}`}
+                  style={{ borderRadius: "8px", padding: "8px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", cursor: "pointer", background: currentOrg.id === org.id ? "var(--ink)" : "transparent", color: currentOrg.id === org.id ? "#fff" : "var(--ink)" }}
                   onClick={() => {
-                    setSelectedOrg(org);
+                    setActiveOrg(org);
                     setOrgDropdownOpen(false);
                   }}
                 >
-                  <span>{org}</span>
+                  <span style={{ fontWeight: 600 }}>{org.name}</span>
+                  <span style={{ fontSize: "10px", opacity: 0.75, background: currentOrg.id === org.id ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.06)", padding: "2px 6px", borderRadius: "6px" }}>{org.badge}</span>
                 </button>
               ))}
             </div>

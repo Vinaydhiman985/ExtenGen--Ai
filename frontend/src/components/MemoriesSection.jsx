@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fetchObservations, createObservation, subscribeToLiveEvents } from "../services/api.js";
+import { fetchObservations, createObservation, subscribeToLiveEvents, subscribeActiveOrg, getActiveOrg } from "../services/api.js";
 
 export function MemoriesSection({ initialTab = "Indexed" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -11,6 +11,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentOrg, setCurrentOrg] = useState(getActiveOrg());
 
   // New Observation Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -24,13 +25,21 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
   useEffect(() => {
     loadMemories();
 
+    const unsubOrg = subscribeActiveOrg((org) => {
+      setCurrentOrg(org);
+      loadMemories();
+    });
+
     const unsubscribe = subscribeToLiveEvents((event) => {
       if (event.type === "agent_activity" || event.type === "agent_connected" || event.type === "sync") {
         loadMemories();
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubOrg();
+      unsubscribe();
+    };
   }, []);
 
   const loadMemories = async () => {

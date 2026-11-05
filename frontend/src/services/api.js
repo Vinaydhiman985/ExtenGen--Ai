@@ -223,6 +223,36 @@ export function formatScoredObservationForUI(scoredObs, index) {
   };
 }
 
+// Multi-Tenant Organization Context
+export const AVAILABLE_ORGS = [
+  { name: "Personal Workspace", id: "00000000-0000-0000-0000-000000000001", slug: "default", badge: "36 memories" },
+  { name: "Acme Corp (Prod)", id: "11111111-1111-1111-1111-111111111111", slug: "acme", badge: "3 memories" },
+  { name: "Staging Org (Stark)", id: "22222222-2222-2222-2222-222222222222", slug: "stark", badge: "1 memory" },
+  { name: "Dev Sandbox", id: "33333333-3333-3333-3333-333333333333", slug: "sandbox", badge: "Sandbox" },
+];
+
+let _currentOrg = AVAILABLE_ORGS[0];
+let _orgListeners = [];
+
+export function getActiveOrg() {
+  return _currentOrg;
+}
+
+export function setActiveOrg(org) {
+  _currentOrg = typeof org === "string" 
+    ? (AVAILABLE_ORGS.find(o => o.name === org) || AVAILABLE_ORGS[0]) 
+    : org;
+  _orgListeners.forEach(fn => fn(_currentOrg));
+}
+
+export function subscribeActiveOrg(listener) {
+  _orgListeners.push(listener);
+  listener(_currentOrg);
+  return () => {
+    _orgListeners = _orgListeners.filter(l => l !== listener);
+  };
+}
+
 // Global API connection status state
 let _apiStatusListeners = [];
 let _currentStatus = {
@@ -273,6 +303,9 @@ export async function fetchObservations({ limit = 50, source } = {}) {
 
   try {
     const res = await fetch(`/api/v1/observations?${queryParams.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${_currentOrg.id}`,
+      },
       signal: AbortSignal.timeout(4000)
     });
 
@@ -320,7 +353,10 @@ export async function createObservation({
   try {
     const res = await fetch("/api/v1/observations", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${_currentOrg.id}`,
+      },
       body: JSON.stringify({
         content,
         title,
@@ -365,7 +401,10 @@ export async function recallContext({
   try {
     const res = await fetch("/api/v1/context/recall", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${_currentOrg.id}`,
+      },
       body: JSON.stringify({
         query,
         limit,
