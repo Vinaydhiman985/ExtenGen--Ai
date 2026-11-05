@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { createObservation } from "../services/api.js";
+import { KnowledgeGapsAreaChart } from "./Charts.jsx";
 
 export function KnowledgeGapsSection({ onNavigateToMemories }) {
   const [createGapModal, setCreateGapModal] = useState(null);
@@ -100,6 +101,9 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
         <div><span className="dash-kpi-val">~2.8k</span><span className="dash-sub">Wasted Agent Tokens</span></div>
         <div><span className="dash-sub">Impact Rating</span><span className="dash-badge dash-badge-yellow" style={{ marginTop: "6px" }}>High Priority</span></div>
       </div>
+
+      {/* GRAPH 4: ZERO-MATCH QUERIES INGESTION TREND */}
+      <KnowledgeGapsAreaChart />
 
       <div className="dash-box dash-table-box">
         <div className="dash-table-wrap">

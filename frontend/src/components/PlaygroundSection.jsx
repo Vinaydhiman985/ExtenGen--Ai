@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { recallContext } from "../services/api.js";
+import { SimilarityHistogramChart } from "./Charts.jsx";
 
 export function PlaygroundSection() {
   const [query, setQuery] = useState("how do we handle invoice pagination and rate limits?");
@@ -205,6 +206,9 @@ export function PlaygroundSection() {
           )}
         </div>
       </div>
+
+      {/* GRAPH 2: VECTOR SIMILARITY DISTRIBUTION HISTOGRAM */}
+      <SimilarityHistogramChart />
     </div>
   );
 }

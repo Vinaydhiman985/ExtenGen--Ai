@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { fetchSystemStats, fetchActiveAgents, runMultiAgentSimulation, subscribeToLiveEvents } from "../services/api.js";
+import { ThroughputLineChart, MemoryDonutChart, SimilarityHistogramChart } from "./Charts.jsx";
 
 export function OverviewSection({ onNavigateToSection }) {
   const [stats, setStats] = useState({
@@ -10,6 +11,7 @@ export function OverviewSection({ onNavigateToSection }) {
   });
   const [activeAgents, setActiveAgents] = useState({ count: 0, agents: [] });
   const [loading, setLoading] = useState(true);
+  const [chartView, setChartView] = useState("telemetry");
 
   // Live Multi-Agent Simulation state
   const [simRunning, setSimRunning] = useState(false);
@@ -156,6 +158,39 @@ export function OverviewSection({ onNavigateToSection }) {
           </div>
         </div>
       </div>
+
+      {/* ENTERPRISE REAL-TIME TELEMETRY & ANALYTICS CHARTS */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", marginBottom: "-14px", flexWrap: "wrap", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <span className="dash-sidebar-dot green" />
+          <strong style={{ fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--mut)" }}>
+            Telemetry & Visualizations
+          </strong>
+        </div>
+        <div className="dash-picker">
+          <button
+            className={`dash-picker-btn ${chartView === "telemetry" ? "active" : ""}`}
+            onClick={() => setChartView("telemetry")}
+          >
+            Throughput & Memory Breakdown
+          </button>
+          <button
+            className={`dash-picker-btn ${chartView === "similarity" ? "active" : ""}`}
+            onClick={() => setChartView("similarity")}
+          >
+            Recall Similarity Distribution
+          </button>
+        </div>
+      </div>
+
+      {chartView === "telemetry" ? (
+        <div className="dash-grid-2">
+          <ThroughputLineChart />
+          <MemoryDonutChart totalMemories={stats.totalMemories || 42} />
+        </div>
+      ) : (
+        <SimilarityHistogramChart />
+      )}
 
       {/* INTERACTIVE MULTI-AGENT PROOF PLAYGROUND */}
       <div className="dash-box" style={{ margin: "24px 0", background: "linear-gradient(180deg, #fafafa 0%, #ffffff 100%)", border: "1.5px solid #141414" }}>
