@@ -54,55 +54,51 @@ export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCou
       id: "overview",
       name: "Overview",
       icon: Icons.overview,
-      desc: "Telemetry, metrics and feed",
-      badge: null
+      desc: "Telemetry, metrics and feed"
     },
     {
       id: "simulator",
       name: "Multi-Agent Collab",
       icon: Icons.simulator,
       desc: "Cross-agent context sharing",
-      badge: "PROOF",
-      badgeColor: "green"
+      dot: "blue",
+      dotTitle: "Active Simulator"
     },
     {
       id: "activity",
       name: "Activity",
       icon: Icons.activity,
       desc: "Tool calls and replays",
-      badge: "LIVE",
-      badgeColor: "green"
+      dot: "green",
+      dotTitle: "Live Event Stream"
     },
     {
       id: "memories",
       name: "Memories",
       icon: Icons.memories,
       desc: "Vector store and lifecycle",
-      badge: pendingCount > 0 ? `${pendingCount} review` : null,
-      badgeColor: "yellow"
+      counter: pendingCount > 0 ? pendingCount : null
     },
     {
       id: "playground",
       name: "Recall Playground",
       icon: Icons.playground,
-      desc: "Semantic query ranking",
-      badge: null
+      desc: "Semantic query ranking"
     },
     {
       id: "gaps",
       name: "Knowledge Gaps",
       icon: Icons.gaps,
       desc: "Zero-match query clusters",
-      badge: gapsCount > 0 ? `${gapsCount} gaps` : null,
-      badgeColor: "red"
+      counter: gapsCount > 0 ? gapsCount : null
     },
     {
       id: "github",
       name: "GitHub Sync",
       icon: Icons.github,
       desc: "Repositories and webhooks",
-      badge: "SYNC",
-      badgeColor: "dark"
+      dot: "green",
+      dotTitle: "Sync Engine Connected"
     }
   ];
 
@@ -133,9 +129,15 @@ export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCou
                 <span className="dash-sidebar-name">{sec.name}</span>
                 <span className="dash-sidebar-desc">{sec.desc}</span>
               </div>
-              {sec.badge && (
-                <span className={`dash-badge dash-badge-${sec.badgeColor || "dark"}`}>
-                  {sec.badge}
+              {sec.dot && (
+                <span
+                  className={`dash-sidebar-dot ${sec.dot}`}
+                  title={sec.dotTitle || "Status"}
+                />
+              )}
+              {sec.counter !== null && sec.counter !== undefined && (
+                <span className="dash-sidebar-counter">
+                  {sec.counter}
                 </span>
               )}
             </button>
@@ -146,6 +148,7 @@ export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCou
       <div>
         <div className="dash-sidebar-footer-card">
           <div className="dash-sfc-header">
+            <span className="dash-sidebar-dot green" />
             <span>Shared Memory Status</span>
           </div>
           <p className="dash-sfc-text">Fastify SSE + pgvector is online and processing embeddings.</p>

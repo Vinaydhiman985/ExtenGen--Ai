@@ -450,6 +450,50 @@
   background: #c79a0b;
 }
 
+/* Subtle sidebar status indicator dots & minimalist counters (Vercel / Supabase style) */
+.dash-sidebar-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.dash-sidebar-dot.green {
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: dashPulseGreen 2.2s infinite;
+}
+.dash-sidebar-dot.blue {
+  background: #3b82f6;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  animation: dashPulseBlue 2.2s infinite;
+}
+.dash-sidebar-dot.muted {
+  background: #94a3b8;
+}
+
+@keyframes dashPulseBlue {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(59, 130, 246, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+.dash-sidebar-counter {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #555555;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+.dash-sidebar-item.active .dash-sidebar-counter {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
 @keyframes dashPulseGreen {
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 163, 107, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(47, 163, 107, 0); }
