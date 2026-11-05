@@ -1,0 +1,10 @@
+#!/bin/sh
+
+npm run --silent extengen:watch
+status=$?
+
+if [ "$status" -ne 0 ]; then
+  printf 'ExtenGen commit capture failed (exit %s); the commit remains successful.\n' "$status" >&2
+fi
+
+exit 0
