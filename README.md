@@ -310,7 +310,7 @@ ExtenGen/
 To install dependencies, configure environment, and run the end-to-end simulation in 10 seconds:
 
 ```bash
-git clone https://github.com/neeraj-ch7/ExtenGen.git && cd ExtenGen && npm install && cp .env.example .env && npm run demo
+git clone https://github.com/Vinaydhiman985/ExtenGen--Ai.git && cd ExtenGen--Ai && npm install && cp .env.example .env && npm run demo
 ```
 
 ---
@@ -322,7 +322,7 @@ git clone https://github.com/neeraj-ch7/ExtenGen.git && cd ExtenGen && npm insta
 | `npm run dev` | `tsx watch src/index.ts` | Starts the Fastify REST & MCP SSE server in watch mode with hot reload. |
 | `npm run mcp:stdio` | `tsx src/mcp/stdio.ts` | Runs the local MCP Stdio server for direct connection to Claude Code / IDEs. |
 | `npm run demo` | `tsx src/scripts/demo.ts` | Runs the end-to-end 4-step memory capture, amnesia comparison, and RLS demo. |
-| `npm test` | `vitest run` | Runs the entire test suite (14 unit & integration tests). |
+| `npm test` | `vitest run` | Runs the entire test suite (32 unit & integration tests across 8 suites). |
 | `npm run test:watch` | `vitest` | Runs Vitest in interactive watch mode for active TDD development. |
 | `npm run migrate` | `tsx src/db/migrate.ts` | Executes SQL migrations on PostgreSQL (`001_initial_schema.sql`). |
 | `docker compose -f compose.yml up --build -d` | Docker Compose | Starts ExtenGen, PostgreSQL/pgvector, and Redis; applies pending migrations before serving. |
@@ -508,7 +508,7 @@ curl http://localhost:3000/api/v1/observations?limit=5
 curl -X POST http://localhost:3000/api/v1/github/ingest \
   -H "Content-Type: application/json" \
   -d '{
-    "repo": "neeraj-ch7/ExtenGen",
+    "repo": "Vinaydhiman985/ExtenGen--Ai",
     "limit": 10
   }'
 ```
@@ -641,7 +641,7 @@ Fetches recent commits and pull requests from a GitHub repository, parsing them 
 {
   "name": "ingest_github",
   "arguments": {
-    "repo": "neeraj-ch7/ExtenGen",
+    "repo": "Vinaydhiman985/ExtenGen--Ai",
     "limit": 15
   }
 }
@@ -665,7 +665,7 @@ Fetches recent commits and pull requests from a GitHub repository, parsing them 
 
 ### 🖥️ Frontend Management Dashboard
 
-ExtenGen includes a responsive web dashboard in `frontend/` powered by **React 18**, **Vite**, and **TailwindCSS**:
+ExtenGen includes a responsive, enterprise-grade web dashboard in `frontend/` powered by **React 19** and **Vite 8**, featuring a minimalist design system inspired by Vercel and Supabase:
 
 ```bash
 # Navigate to the frontend workspace
@@ -676,12 +676,19 @@ npm install
 npm run dev
 ```
 
-The dashboard opens at `http://localhost:5173` and provides:
-- **🧠 Memory Explorer:** Search, inspect, and filter stored observations, tags, and supersession links.
-- **⚡ Multi-Agent Collaboration Blackboard:** Real-time visibility into shared decisions created by different agents.
-- **🎯 Semantic Playground:** Test natural-language retrieval queries with interactive cosine similarity thresholds and recency decay sliders.
-- **🔄 GitHub Sync Center:** Monitor automated commit and PR webhook ingestion status.
-- **📊 Knowledge Gaps:** Visual heuristics highlighting architectural topics that lack recorded decisions.
+The dashboard opens at `http://localhost:5173` (proxied to the Fastify API server) and provides:
+
+- **📊 Real-Time Infrastructure Telemetry & Pure SVG Charts (Zero External Dependencies):**
+  - **API Throughput & Tool Calls Line Chart:** Dual-series tracking of `recall_context` vs `store_observation` MCP executions over time with 1h/24h/7d range controls, crosshair hover inspection, and latency metrics (`18ms` avg).
+  - **Memory & Chunk Type Breakdown Donut Chart:** Interactive SVG ring visualizing knowledge distribution across Architecture & Standards (42%), API & Endpoints (28%), DB & Vector Schemas (18%), and Security & RLS Rules (12%) with dynamic slice highlight and center counters.
+  - **Recall Similarity Distribution Histogram:** Quality distribution of pgvector cosine similarity scores across agent queries (`0.90-1.00` High Precision, `0.80-0.89` Strong Match, `0.70-0.79` Broad Context, `<0.70` Gaps).
+  - **Knowledge Gaps Ingestion Trend Area Chart:** 7-day timeline monitoring unanswered zero-match queries vs team memory resolutions.
+- **🏢 Multi-Tenant Organization Switcher:** Live dropdown to switch tenant contexts (Personal Workspace, Acme Corp Prod, Staging Org Stark, Dev Sandbox) with strict PostgreSQL RLS enforcement via `Authorization: Bearer <org_id>`.
+- **⚡ Interactive Multi-Agent Proof Playground:** End-to-end browser proof demonstrating Agent A (Claude Code CLI) persisting a standard and Agent B (Cursor IDE) immediately recalling it with zero prior session context.
+- **🎯 Semantic Recall Playground & Explainability:** Test natural-language retrieval queries with interactive cosine similarity thresholds, recency decay weighting, and preview exact prompt injections.
+- **🧠 Memory Explorer & Lifecycle Management:** Real-time audit feed and search across Indexed, Proposed, Verified, Superseded, and Archived memories with contradiction warnings.
+- **🔄 GitHub Repository & Webhook Sync:** Monitor automated commit and PR webhook ingestion status in real time.
+- **📡 Real-Time SSE Stream:** Instant synchronization with Fastify Server-Sent Events (`/sse`) for zero-refresh live updates when agents connect or store memories.
 
 ---
 
@@ -707,9 +714,10 @@ Researching multi-tenant vector partitioning techniques that guarantee zero info
 
 ## 🔮 Future Scope & Roadmap
 
-- [ ] **Autonomous Observation Extraction:** Implement background LLM reflection agents that monitor terminal output and git diffs, automatically extracting architectural decisions without requiring manual tool calls.
-- [ ] **Temporal Recency Decay Scoring:** Implement configurable exponential decay functions in `match_observations` to prioritize recent decisions while keeping historical foundations accessible.
-- [ ] **Semantic Conflict & Inconsistency Detection:** Automatically alert agents when a new proposal directly contradicts a previously established decision.
+- [x] **Autonomous Observation Extraction / Git Watcher:** Background watcher (`watch.ts` / `gitWatcher.ts`) and git hooks extracting decisions with AST-based credential and secret redaction.
+- [x] **Temporal Recency Decay Scoring:** Configurable exponential decay scoring ($S = \text{sim} \cdot e^{-\lambda \Delta t}$) implemented across PostgreSQL SQL queries and in-memory fallback.
+- [x] **Semantic Contradiction & Inconsistency Detection:** Automated conflict evaluation via LLM reflection and atomic supersession DAG tracking (`contradictions.ts` & `002_observation_supersession.sql`).
+- [x] **Enterprise Telemetry & Analytics Dashboard:** High-performance React 19 dashboard with pure SVG charts, real-time SSE stream, and multi-tenant organization switching.
 - [ ] **Knowledge Graph Integration (Hybrid Graph-RAG):** Combine dense vector embeddings with explicit entity-relationship knowledge graphs (entities: Files, Functions, Modules, PRs, Authors) using Cypher or `pg_graphql`.
 - [ ] **IDE Native Extensions:** Develop lightweight VS Code and JetBrains plugins that visualize recalled memories directly in the code editor alongside inline completions.
 - [ ] **Local Embedded Engine (SQLite / DuckDB + libsqlite3-vss):** Provide a zero-dependency, single-binary distribution of ExtenGen for offline local development without external PostgreSQL servers.
@@ -754,13 +762,14 @@ ExtenGen's theoretical architecture and implementation are informed by foundatio
 
 This project was built through collaborative engineering. For academic viva, evaluation, and attribution purposes, the technical contributions are structured as follows:
 
-- **Vinay Dhiman** ([@Vinaydhiman985](https://github.com/Vinaydhiman985)) — *Core Engine & System Architecture*:
+- **Vinay Dhiman** ([@Vinaydhiman985](https://github.com/Vinaydhiman985)) — *Core Engine, System Architecture & Telemetry Dashboard*:
   - **Google Gemini MRL Embeddings**: Architected the zero-cost transition to `gemini-embedding-001` with Matryoshka 768-dim vector reduction.
   - **Database & Multi-Tenant Infrastructure**: Engineered PostgreSQL 17 + `pgvector` session pooler connection (`aws-0-ap-south-1.pooler.supabase.com:5432`) with transactional RLS isolation and advisory locking migrations (`001`, `002`, `003`).
   - **Contradiction & Semantic Conflict Engine**: Implemented `contradictions.ts` to detect contradicting decisions with atomic supersession DAG tracking.
   - **Temporal Decay Ranking**: Implemented time-weighted retrieval scoring ($S = \text{sim} \cdot e^{-\lambda \Delta t}$) across both Postgres SQL and in-memory fallback.
   - **Automated Git Watcher**: Created `watch.ts` and `gitWatcher.ts` with AST/pattern-based credential and secret redaction.
-  - **Test Suite & Security Hardening**: Authored Vitest unit/integration test harness (32 tests) and hardened API authentication with strict 401 unauthorized rejections.
+  - **Interactive Telemetry Dashboard & Pure SVG Charts**: Restored, modernized, and built the enterprise React 19 dashboard with Vercel/Supabase minimalist styling, subtle pulsing status dots, multi-tenant organization context switching, and 4 custom zero-dependency SVG charts (API throughput line chart, memory breakdown donut chart, recall similarity histogram, and knowledge gaps trend).
+  - **Test Suite & Security Hardening**: Authored Vitest unit/integration test harness (32 tests across 8 suites) and hardened API authentication with strict 401 unauthorized rejections.
   - **Containerization & CI**: Configured multi-stage `Dockerfile`, `compose.yml`, and GitHub Actions CI workflow.
 
 - **Neeraj** ([@neeraj-ch7](https://github.com/neeraj-ch7)) — *Initial Concept & Scaffolding*:
