@@ -11,15 +11,23 @@ const envSchema = z.object({
 
   // PostgreSQL / Supabase
   DATABASE_URL: z.string().optional(),
+  PGHOST: z.string().optional(),
+  PGPORT: z.coerce.number().optional(),
+  PGDATABASE: z.string().optional(),
+  PGUSER: z.string().optional(),
+  PGPASSWORD: z.string().optional(),
+  PGSSLMODE: z.enum(['disable', 'require']).optional(),
   SUPABASE_URL: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
-  // OpenAI / Embeddings
-  OPENAI_API_KEY: z.string().default('mock'),
-  EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
-  EMBEDDING_DIMENSIONS: z.coerce.number().default(1536),
+  // Google Generative AI — FREE embeddings via gemini-embedding-001 (768 dims)
+  GOOGLE_API_KEY: z.string().default('mock'),
+  EMBEDDING_MODEL: z.string().default('gemini-embedding-001'),
+  EMBEDDING_DIMENSIONS: z.coerce.number().default(768),
+  GEMINI_SUMMARY_MODEL: z.string().default('gemini-2.5-flash'),
 
-  // Redis / BullMQ (optional, if omitted runs queue in-memory/direct)
+  // Redis / BullMQ for Async Embedding Queue
+  // If left empty, ExtenGen runs queue jobs synchronously in-process
   REDIS_URL: z.string().optional(),
 
   // GitHub integration
@@ -41,7 +49,7 @@ function loadEnv(): Env {
     if (process.env.NODE_ENV === 'test') {
       return envSchema.parse({
         NODE_ENV: 'test',
-        OPENAI_API_KEY: 'mock',
+        GOOGLE_API_KEY: 'mock',
       });
     }
     throw new Error('Invalid environment configuration');

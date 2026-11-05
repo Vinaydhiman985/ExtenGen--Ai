@@ -1,35 +1,33 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import crypto from 'crypto';
 import { env } from '../config/env.js';
 
-let openaiClient: OpenAI | null = null;
+let googleClient: GoogleGenerativeAI | null = null;
 
-function getOpenAIClient(): OpenAI | null {
-  if (openaiClient) return openaiClient;
-  if (env.OPENAI_API_KEY && env.OPENAI_API_KEY !== 'mock' && env.OPENAI_API_KEY.startsWith('sk-')) {
-    openaiClient = new OpenAI({ apiKey: env.OPENAI_API_KEY });
-    return openaiClient;
+function getGoogleClient(): GoogleGenerativeAI | null {
+  if (googleClient) return googleClient;
+  if (env.GOOGLE_API_KEY && env.GOOGLE_API_KEY !== 'mock') {
+    googleClient = new GoogleGenerativeAI(env.GOOGLE_API_KEY);
+    return googleClient;
   }
   return null;
 }
 
 function stem(w: string): string {
   if (w.length <= 3) return w;
-  return w
-    .replace(/(ing|edly|ed|es|s|tion|ly)$/, '');
+  return w.replace(/(ing|edly|ed|es|s|tion|ly)$/, '');
 }
 
 /**
  * Deterministic pseudo-semantic embedding generator for testing and offline development.
  * Maps tokens to reproducible vector components via feature hashing and normalizes to a unit sphere (L2 norm = 1).
  */
-export function generateMockEmbedding(text: string, dimensions: number = 1536): number[] {
+export function generateMockEmbedding(text: string, dimensions: number = 768): number[] {
   const vector = new Array(dimensions).fill(0);
   const normalizedText = text.toLowerCase().replace(/[^a-z0-9_\-\s]/g, ' ').trim();
   const rawWords = normalizedText.split(/\s+/).filter(Boolean);
 
   if (rawWords.length === 0) {
-    // Return unit vector along first dimension if empty
     vector[0] = 1.0;
     return vector;
   }
@@ -77,21 +75,22 @@ export function generateMockEmbedding(text: string, dimensions: number = 1536): 
 }
 
 /**
- * Generate vector embedding for given text using OpenAI text-embedding-3-small or fallback mock.
+ * Generate vector embedding for given text using Google Generative AI or fallback mock.
+ * Supports configurable outputDimensionality (e.g. 768).
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const client = getOpenAIClient();
+  const client = getGoogleClient();
 
   if (client) {
     try {
-      const response = await client.embeddings.create({
-        model: env.EMBEDDING_MODEL,
-        input: text.slice(0, 8000), // Protect against token limits
-        dimensions: env.EMBEDDING_DIMENSIONS,
-      });
-      return response.data[0].embedding;
+      const model = client.getGenerativeModel({ model: env.EMBEDDING_MODEL });
+      const result = await model.embedContent({
+        content: { role: 'user', parts: [{ text: text.slice(0, 9000) }] },
+        outputDimensionality: env.EMBEDDING_DIMENSIONS,
+      } as any);
+      return result.embedding.values;
     } catch (error) {
-      console.warn('⚠️ OpenAI API call failed, falling back to mock embeddings:', error);
+      console.warn('⚠️  Google Embedding API call failed, falling back to mock embeddings:', error);
       return generateMockEmbedding(text, env.EMBEDDING_DIMENSIONS);
     }
   }
@@ -103,18 +102,22 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  * Batch generate vector embeddings.
  */
 export async function generateBatchEmbeddings(texts: string[]): Promise<number[][]> {
-  const client = getOpenAIClient();
+  const client = getGoogleClient();
 
   if (client && texts.length > 0) {
     try {
-      const response = await client.embeddings.create({
-        model: env.EMBEDDING_MODEL,
-        input: texts.map(t => t.slice(0, 8000)),
-        dimensions: env.EMBEDDING_DIMENSIONS,
-      });
-      return response.data.map(item => item.embedding);
+      const model = client.getGenerativeModel({ model: env.EMBEDDING_MODEL });
+      const results: number[][] = [];
+      for (const text of texts) {
+        const result = await model.embedContent({
+          content: { role: 'user', parts: [{ text: text.slice(0, 9000) }] },
+          outputDimensionality: env.EMBEDDING_DIMENSIONS,
+        } as any);
+        results.push(result.embedding.values);
+      }
+      return results;
     } catch (error) {
-      console.warn('⚠️ OpenAI Batch API call failed, falling back to mock embeddings:', error);
+      console.warn('⚠️  Google Batch Embedding call failed, falling back to mock embeddings:', error);
       return texts.map(t => generateMockEmbedding(t, env.EMBEDDING_DIMENSIONS));
     }
   }
