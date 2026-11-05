@@ -3,13 +3,15 @@
 > **A High-Performance, Multi-Tenant Shared Memory Layer for AI Coding Agents**  
 > *Connecting ephemeral LLM coding sessions into continuous, persistent institutional intelligence via the Model Context Protocol (MCP) and pgvector.*
 
+[![CI](https://github.com/Vinaydhiman985/ExtenGen--Ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Vinaydhiman985/ExtenGen--Ai/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Standard%20v1.6-purple.svg)](https://modelcontextprotocol.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B%20%7C%20pgvector-336791.svg?logo=postgresql)](https://github.com/pgvector/pgvector)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17%20%7C%20pgvector-336791.svg?logo=postgresql)](https://github.com/pgvector/pgvector)
+[![Google Gemini](https://img.shields.io/badge/Gemini-Embeddings%20768d-4285F4.svg?logo=google)](https://aistudio.google.com/)
 [![Fastify](https://img.shields.io/badge/Fastify-5.2-black.svg?logo=fastify)](https://www.fastify.io/)
 [![BullMQ](https://img.shields.io/badge/BullMQ-Redis%20Queue-red.svg)](https://bullmq.io/)
-[![Tests](https://img.shields.io/badge/Tests-14%20Passing-brightgreen.svg)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/Tests-32%20Passing-brightgreen.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -32,10 +34,12 @@
    - [🔌 Connecting Claude Code, Claude Desktop, Cursor & Windsurf](#-connecting-to-agents-and-ides)
    - [📡 Quick cURL & REST API Verification Commands](#-quick-curl--rest-api-verification-commands)
 8. [MCP Tools & REST API Reference](#-mcp-tools--api-reference)
+   - [🖥️ Frontend Management Dashboard](#-frontend-management-dashboard)
 9. [Areas of Research & Theoretical Foundations](#-areas-of-research)
 10. [Future Scope & Roadmap](#-future-scope--roadmap)
 11. [Academic References & Prior Art](#-references--academic-citations)
 12. [Conclusion & Contributing](#-conclusion--contributing)
+   - [👥 Authorship & Project Contributions](#-authorship--project-contributions)
 
 ---
 
@@ -321,6 +325,7 @@ git clone https://github.com/neeraj-ch7/ExtenGen.git && cd ExtenGen && npm insta
 | `npm test` | `vitest run` | Runs the entire test suite (14 unit & integration tests). |
 | `npm run test:watch` | `vitest` | Runs Vitest in interactive watch mode for active TDD development. |
 | `npm run migrate` | `tsx src/db/migrate.ts` | Executes SQL migrations on PostgreSQL (`001_initial_schema.sql`). |
+| `docker compose -f compose.yml up --build -d` | Docker Compose | Starts ExtenGen, PostgreSQL/pgvector, and Redis; applies pending migrations before serving. |
 | `npm run seed` | `tsx src/scripts/seed.ts` | Seeds dummy organizations (Acme Corp & Stark Industries) and test API keys. |
 | `npm run build` | `tsc` | Compiles TypeScript into production JavaScript in `./dist`. |
 | `npm start` | `node dist/index.js` | Runs the production-built Fastify & BullMQ background worker server. |
@@ -329,26 +334,19 @@ git clone https://github.com/neeraj-ch7/ExtenGen.git && cd ExtenGen && npm insta
 
 ### 🐳 Optional Docker Infrastructure Setup
 
-If you wish to run a full local PostgreSQL with `pgvector` and a Redis instance via Docker:
+Run the application, PostgreSQL with pgvector, and Redis together:
 
 ```bash
-# 1. Start PostgreSQL 16 with pgvector extension
-docker run -d \
-  --name extengen-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=extengen \
-  -p 5432:5432 \
-  pgvector/pgvector:pg16
+cp .env.example .env
+# Set POSTGRES_PASSWORD to a strong local password in .env.
+docker compose -f compose.yml up --build -d
 
-# 2. Start Redis 7 for BullMQ background queue
-docker run -d \
-  --name extengen-redis \
-  -p 6379:6379 \
-  redis:7-alpine
+# Check container health and the API.
+docker compose -f compose.yml ps
+curl http://localhost:3001/health
 ```
 
-*(Note: ExtenGen includes a resilient in-memory fallback, so you can run tests and demos even without Docker or Redis!)*
+Compose publishes ExtenGen on port `3001` and PostgreSQL on `5434` by default to avoid common existing local services. Override these with `EXTENGEN_PORT` and `POSTGRES_PORT`. Database migrations run once, before the app starts; PostgreSQL, Redis, and the application each have health checks. Data persists in named Docker volumes. Stop the services with `docker compose -f compose.yml down`; add `-v` only when you intentionally want to delete the database and Redis volumes.
 
 ---
 
@@ -356,8 +354,8 @@ docker run -d \
 
 #### 1. Clone and Install
 ```bash
-git clone https://github.com/neeraj-ch7/ExtenGen.git
-cd ExtenGen
+git clone https://github.com/Vinaydhiman985/ExtenGen--Ai.git
+cd ExtenGen--Ai
 npm install
 ```
 
@@ -377,10 +375,15 @@ LOG_LEVEL=info
 # Database connection string (Postgres + pgvector or Supabase)
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/extengen
 
-# OpenAI API Key (Leave as 'mock' for local offline testing)
-OPENAI_API_KEY=mock
-EMBEDDING_MODEL=text-embedding-3-small
-EMBEDDING_DIMENSIONS=1536
+# Google Gemini API key (use 'mock' for offline embeddings tests)
+GOOGLE_API_KEY=mock
+EMBEDDING_MODEL=gemini-embedding-001
+EMBEDDING_DIMENSIONS=768
+
+# Docker Compose local database credentials
+POSTGRES_PASSWORD=change-me-for-local-docker-only
+POSTGRES_PORT=5434
+EXTENGEN_PORT=3001
 
 # Redis URL for async job processing
 REDIS_URL=redis://localhost:6379
@@ -392,7 +395,7 @@ DEFAULT_USER_ID=00000000-0000-0000-0000-000000000002
 
 #### 3. Run Database Migrations & Seed
 ```bash
-# Run schema migration (creates vector extension, tables, HNSW index & RLS policies)
+# Run all unapplied schema migrations (creates vector extension, tables, HNSW index & RLS policies)
 npm run migrate
 
 # (Optional) Seed dummy multi-tenant data
@@ -441,27 +444,24 @@ Add the following to your `claude_desktop_config.json`:
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
+Replace `C:/path/to/ExtenGen` with the absolute path to this repository. Configure `DATABASE_URL` and `GOOGLE_API_KEY` in its root `.env` file first.
+
 ```json
 {
   "mcpServers": {
     "extengen": {
-      "command": "npx",
-      "args": ["-y", "tsx", "C:/Users/ASUS/Desktop/github-local-repo/ExtenGen/src/mcp/stdio.ts"],
-      "env": {
-        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/extengen",
-        "OPENAI_API_KEY": "sk-your-openai-api-key",
-        "DEFAULT_ORG_ID": "00000000-0000-0000-0000-000000000001"
-      }
+      "command": "npm",
+      "args": ["--prefix", "C:/path/to/ExtenGen", "run", "--silent", "mcp:stdio"]
     }
   }
 }
 ```
 
-#### 3. Cursor & Windsurf IDE Integration
-In Cursor or Windsurf settings $\to$ **Features** $\to$ **MCP Servers** $\to$ **Add New MCP Server**:
-- **Name:** `extengen`
-- **Type:** `command`
-- **Command:** `npx tsx /absolute/path/to/ExtenGen/src/mcp/stdio.ts`
+#### 3. Cursor Integration
+The repository includes a ready-made [`.cursor/mcp.json`](./.cursor/mcp.json). Open the repository as your Cursor workspace, configure `DATABASE_URL` and `GOOGLE_API_KEY` in the root `.env` file, then enable the `extengen` server in Cursor's MCP settings.
+
+#### 4. Windsurf Integration
+In Windsurf MCP settings, add a command server with `npm run --silent mcp:stdio`. Open the repository as the working directory and configure `DATABASE_URL` and `GOOGLE_API_KEY` in the root `.env` file.
 
 ---
 
@@ -493,7 +493,8 @@ curl -X POST http://localhost:3000/api/v1/recall \
   -d '{
     "query": "What is the token expiration window?",
     "limit": 3,
-    "similarityThreshold": 0.4
+    "similarityThreshold": 0.4,
+    "recencyWeight": 0.01
   }'
 ```
 
@@ -512,6 +513,53 @@ curl -X POST http://localhost:3000/api/v1/github/ingest \
   }'
 ```
 
+### Automatic Git Commit Capture (Opt-In)
+
+The local post-commit hook summarizes supported source and documentation changes with the configured Gemini model, then stores the summary as a `github_commit` observation using `DATABASE_URL`, `DEFAULT_ORG_ID`, and `DEFAULT_USER_ID` from `.env`. Set `GOOGLE_API_KEY` to a real key and `GEMINI_SUMMARY_MODEL` if you want to override the default `gemini-2.5-flash` model. Summary generation sends a redacted, size-limited diff to Google's Gemini API; excluded paths include environment files, lockfiles, build output, and key files.
+
+Enable the hook only after reviewing this data flow:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Disable it with:
+
+```bash
+git config --unset core.hooksPath
+```
+
+The hook does not fail or undo a Git commit if capture fails; it reports the error to the terminal. GitHub push and merged-pull-request webhook events can also be sent to `POST /api/v1/webhooks/github`; configure the same `GITHUB_WEBHOOK_SECRET` in ExtenGen and your GitHub repository's webhook settings. Requests with missing or invalid `X-Hub-Signature-256` signatures are rejected.
+
+To send a signed simulated push webhook locally while the API is running (run from the repository root, where `.env` is loaded):
+
+```sh
+node --import dotenv/config --input-type=module -e '
+import { createHmac } from "node:crypto";
+const payload = JSON.stringify({
+  ref: "refs/heads/main",
+  repository: { full_name: "example/team-repo" },
+  commits: [{
+    id: "0123456789abcdef",
+    message: "feat: record webhook changes",
+    author: { name: "Developer" },
+    added: ["src/webhooks/handler.ts"],
+    modified: [],
+    removed: []
+  }]
+});
+const signature = createHmac("sha256", process.env.GITHUB_WEBHOOK_SECRET).update(payload).digest("hex");
+const response = await fetch("http://localhost:3000/api/v1/webhooks/github", {
+  method: "POST",
+  headers: { "content-type": "application/json", "x-github-event": "push", "x-hub-signature-256": `sha256=${signature}` },
+  body: payload
+});
+console.log(response.status, await response.text());
+'
+```
+
+In production, point GitHub's webhook URL at the deployed API, set `GITHUB_WEBHOOK_SECRET`, and configure the intended tenant/authentication for ingestion before enabling delivery.
+
 ---
 
 ## 🔧 MCP Tools & API Reference
@@ -529,6 +577,7 @@ Captures and persists an architectural decision, code pattern, bug fix, or insti
     "title": "Stripe Webhook Idempotency Standard",
     "source": "agent_session",
     "tags": ["stripe", "webhooks", "redis", "idempotency"],
+    "confirm_contradictions": false,
     "metadata": {
       "author": "Alice",
       "related_file": "src/services/billing.ts"
@@ -536,6 +585,10 @@ Captures and persists an architectural decision, code pattern, bug fix, or insti
   }
 }
 ```
+
+For explicit MCP and REST observation captures, ExtenGen retrieves up to five similar tenant-scoped memories and asks the configured Gemini model whether any directly contradict the new observation. Candidate selection uses a cosine-similarity threshold of `0.30`; related but compatible observations are not conflicts. The proposed and matching observation text is sent to Google Gemini for evaluation. If Gemini identifies a conflict, the observation is **not stored**: ask the user, then repeat the call with `confirm_contradictions: true` (MCP) or `confirmContradictions: true` (REST). If similar memories exist but Gemini is not configured or its evaluation fails, the capture fails closed rather than silently saving unreviewed content. GitHub commit and pull-request imports do not run this check.
+
+On explicit confirmation, ExtenGen retains the old observation for audit history and durably marks it as superseded by the new observation, including the conflict reason. Superseded observations are excluded from semantic recall and later contradiction checks. Before deploying this version, apply the additive database migration with `npm run migrate`; until migration `002_observation_supersession.sql` is applied, the application will not work against the existing database schema.
 
 #### 2. `recall_context`
 Performs cosine similarity vector search over the organization's indexed memory, returning a prompt-injectable markdown block.
@@ -547,10 +600,13 @@ Performs cosine similarity vector search over the organization's indexed memory,
     "query": "How are we handling Stripe webhook idempotency?",
     "limit": 3,
     "similarity_threshold": 0.50,
+    "recency_weight": 0.01,
     "tags": ["webhooks"]
   }
 }
 ```
+
+`recency_weight` is λ (lambda) in the exponential score `cosine similarity × e^(-λ × age in days)`. It defaults to `0.01`; higher values favor newer observations more strongly. Set it to `0` to disable recency decay. The cosine similarity threshold continues to filter candidates before recency affects their ranking.
 
 **Sample Formatted Response:**
 ```markdown
@@ -600,10 +656,32 @@ Fetches recent commits and pull requests from a GitHub repository, parsing them 
 | `GET` | `/health` | Server health check and timestamp. | None |
 | `POST` | `/api/v1/observations` | Store an observation via HTTP REST. | `Authorization: Bearer <key>` |
 | `GET` | `/api/v1/observations` | List recent observations. | `Authorization: Bearer <key>` |
-| `POST` | `/api/v1/recall` | Retrieve top-$k$ semantic observations. | `Authorization: Bearer <key>` |
-| `POST` | `/api/v1/github/ingest` | Trigger repository commit/PR ingestion. | `Authorization: Bearer <key>` |
+| `POST` | `/api/v1/recall` | Retrieve ranked semantic observations; alias: `/api/v1/context/recall`. | `Authorization: Bearer <key>` |
+| `POST` | `/api/v1/github/ingest` | Trigger repository commit/PR ingestion; alias: `/api/v1/ingest/github`. | `Authorization: Bearer <key>` |
 | `GET` | `/sse` | MCP Server-Sent Events stream initialization. | `Authorization: Bearer <key>` |
-| `POST` | `/messages?sessionId=...` | MCP JSON-RPC message delivery endpoint. | None |
+| `POST` | `/messages?sessionId=...` | MCP JSON-RPC message delivery endpoint. | Session-bound (Authenticated via `/sse` handshake) |
+
+---
+
+### 🖥️ Frontend Management Dashboard
+
+ExtenGen includes a responsive web dashboard in `frontend/` powered by **React 18**, **Vite**, and **TailwindCSS**:
+
+```bash
+# Navigate to the frontend workspace
+cd frontend
+
+# Install dependencies and start the Vite development server
+npm install
+npm run dev
+```
+
+The dashboard opens at `http://localhost:5173` and provides:
+- **🧠 Memory Explorer:** Search, inspect, and filter stored observations, tags, and supersession links.
+- **⚡ Multi-Agent Collaboration Blackboard:** Real-time visibility into shared decisions created by different agents.
+- **🎯 Semantic Playground:** Test natural-language retrieval queries with interactive cosine similarity thresholds and recency decay sliders.
+- **🔄 GitHub Sync Center:** Monitor automated commit and PR webhook ingestion status.
+- **📊 Knowledge Gaps:** Visual heuristics highlighting architectural topics that lack recorded decisions.
 
 ---
 
@@ -671,6 +749,24 @@ ExtenGen's theoretical architecture and implementation are informed by foundatio
 ## 🏁 Conclusion & Contributing
 
 **ExtenGen** bridges the fundamental gap between ephemeral AI coding agents and long-term software engineering realities. By providing persistent, multi-tenant, and semantically searchable shared memory, ExtenGen transforms AI assistants from isolated autocomplete tools into continuous, collaborative software engineering partners.
+
+### 👥 Authorship & Project Contributions
+
+This project was built through collaborative engineering. For academic viva, evaluation, and attribution purposes, the technical contributions are structured as follows:
+
+- **Vinay Dhiman** ([@Vinaydhiman985](https://github.com/Vinaydhiman985)) — *Core Engine & System Architecture*:
+  - **Google Gemini MRL Embeddings**: Architected the zero-cost transition to `gemini-embedding-001` with Matryoshka 768-dim vector reduction.
+  - **Database & Multi-Tenant Infrastructure**: Engineered PostgreSQL 17 + `pgvector` session pooler connection (`aws-0-ap-south-1.pooler.supabase.com:5432`) with transactional RLS isolation and advisory locking migrations (`001`, `002`, `003`).
+  - **Contradiction & Semantic Conflict Engine**: Implemented `contradictions.ts` to detect contradicting decisions with atomic supersession DAG tracking.
+  - **Temporal Decay Ranking**: Implemented time-weighted retrieval scoring ($S = \text{sim} \cdot e^{-\lambda \Delta t}$) across both Postgres SQL and in-memory fallback.
+  - **Automated Git Watcher**: Created `watch.ts` and `gitWatcher.ts` with AST/pattern-based credential and secret redaction.
+  - **Test Suite & Security Hardening**: Authored Vitest unit/integration test harness (32 tests) and hardened API authentication with strict 401 unauthorized rejections.
+  - **Containerization & CI**: Configured multi-stage `Dockerfile`, `compose.yml`, and GitHub Actions CI workflow.
+
+- **Neeraj** ([@neeraj-ch7](https://github.com/neeraj-ch7)) — *Initial Concept & Scaffolding*:
+  - Initial problem exploration, base MCP protocol server schema, early Fastify route scaffolds, and frontend dashboard wireframes.
+
+---
 
 ### Contributing
 Contributions are welcomed! Please follow these steps:

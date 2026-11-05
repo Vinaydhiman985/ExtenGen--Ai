@@ -1,0 +1,15 @@
+.git
+.githooks
+.cursor
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+.vitest
+tests
+backend
+frontend
+ExtenGen-main
+*.log

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "extengen": {
+      "command": "npm",
+      "args": ["run", "--silent", "mcp:stdio"]
+    }
+  }
+}
