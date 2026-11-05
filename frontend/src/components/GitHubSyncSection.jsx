@@ -271,7 +271,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
           <div className="dash-table-wrap">
             {realEvents.length === 0 ? (
               <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
-                No GitHub memories ingested yet. Use the form above to ingest commits from <code>neeraj-ch7/ExtenGen</code>!
+                No GitHub memories ingested yet. Use the form above to ingest commits from <code>Vinaydhiman985/ExtenGen--Ai</code>!
               </div>
             ) : (
               <table className="dash-table">

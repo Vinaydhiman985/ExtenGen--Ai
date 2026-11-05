@@ -72,7 +72,14 @@ function Nav({ onOpenDashboard }) {
         >
           📊 Dashboard
         </button>
-        <a className="pill white" href="#">GitHub</a>
+        <a
+          className="pill white"
+          href="https://github.com/Vinaydhiman985/ExtenGen--Ai"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub
+        </a>
         <a className="pill dark" href="#start">Get started</a>
       </div>
     </header>
@@ -228,7 +235,14 @@ export default function App() {
               >
                 📊 Open Dashboard
               </button>
-              <a className="pill ghost big" href="#">Read the docs</a>
+              <a
+                className="pill ghost big"
+                href="https://github.com/Vinaydhiman985/ExtenGen--Ai#readme"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Read the docs
+              </a>
             </div>
             <pre className="install">claude mcp add extengen -- npx extengen-mcp</pre>
             <small>Placeholder command. Replace it with your real install step.</small>
