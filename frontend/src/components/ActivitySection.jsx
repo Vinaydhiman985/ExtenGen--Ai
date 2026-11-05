@@ -258,7 +258,7 @@ export function ActivitySection() {
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-green">⚡ Real-Time Activity Feed</span>
+          <span className="dash-badge dash-badge-green">Real-Time Activity Feed</span>
           <h1>Activity Calls & Session Replay</h1>
           <p>Live stream of `store_observation` and `recall_context` events. Click any entry to inspect full Session Replay timelines and score breakdowns.</p>
         </div>
@@ -274,13 +274,13 @@ export function ActivitySection() {
             className={`dash-picker-btn ${filterType === "recall" ? "active" : ""}`}
             onClick={() => setFilterType("recall")}
           >
-            🎯 Recalls (3)
+            Recalls (3)
           </button>
           <button
             className={`dash-picker-btn ${filterType === "store" ? "active" : ""}`}
             onClick={() => setFilterType("store")}
           >
-            📥 Ingested Stores (2)
+            Ingested Stores (2)
           </button>
         </div>
       </div>
@@ -309,20 +309,20 @@ export function ActivitySection() {
                     <td style={{ fontSize: "13px", color: "#666", whiteSpace: "nowrap" }}>{item.time}</td>
                     <td>
                       <span className={`dash-badge ${item.type === "recall" ? "dash-badge-dark" : "dash-badge-yellow"}`}>
-                        {item.type === "recall" ? "🎯 recall_context" : "📥 store_observation"}
+                        {item.type === "recall" ? "recall_context" : "store_observation"}
                       </span>
                     </td>
                     <td>
-                      <strong style={{ fontSize: "14px", color: "#141414" }}>🤖 {item.agent}</strong>
+                      <strong style={{ fontSize: "14px", color: "#141414" }}>{item.agent}</strong>
                       <small className="dash-sub">{item.project}</small>
                     </td>
                     <td style={{ maxWidth: "380px" }}>
                       <div style={{ fontWeight: 600, fontSize: "14px", color: "#141414" }}>{item.query}</div>
                       {item.tokenSaved > 0 && (
-                        <span className="dash-badge dash-badge-green" style={{ marginTop: "4px" }}>⚡ {item.tokenSaved} tokens saved</span>
+                        <span className="dash-badge dash-badge-green" style={{ marginTop: "4px" }}>{item.tokenSaved} tokens saved</span>
                       )}
                       {item.secretsRedacted > 0 && (
-                        <span className="dash-badge dash-badge-yellow" style={{ marginTop: "4px" }}>🔒 Secret Redacted</span>
+                        <span className="dash-badge dash-badge-yellow" style={{ marginTop: "4px" }}>Secret Redacted</span>
                       )}
                     </td>
                     <td className="dash-mono dash-bold">{item.latency}</td>
@@ -341,17 +341,17 @@ export function ActivitySection() {
                         <div style={{ display: "flex", gap: "6px" }} onClick={(e) => e.stopPropagation()}>
                           <button
                             className="dash-pill dash-pill-white dash-pill-sm"
-                            style={{ background: currentRating === "up" ? "#dcfce7" : "#fff" }}
+                            style={{ background: currentRating === "up" ? "#dcfce7" : "#fff", fontWeight: 700 }}
                             onClick={() => handleRate(item.id, "up")}
                           >
-                            👍
+                            +1
                           </button>
                           <button
                             className="dash-pill dash-pill-white dash-pill-sm"
-                            style={{ background: currentRating === "down" ? "#fee2e2" : "#fff" }}
+                            style={{ background: currentRating === "down" ? "#fee2e2" : "#fff", fontWeight: 700 }}
                             onClick={() => handleRate(item.id, "down")}
                           >
-                            👎
+                            -1
                           </button>
                         </div>
                       ) : (
@@ -366,7 +366,7 @@ export function ActivitySection() {
                           setSelectedActivity(item);
                         }}
                       >
-                        🎬 Replay
+                        Replay
                       </button>
                     </td>
                   </tr>
@@ -383,7 +383,7 @@ export function ActivitySection() {
           <div className="dash-modal-card" style={{ maxWidth: "780px" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
               <div>
-                <span className="dash-badge dash-badge-dark">🎬 #3 Session Replay Timeline</span>
+                <span className="dash-badge dash-badge-dark">Session Replay Timeline</span>
                 <h2 style={{ margin: "6px 0 0", font: "400 32px/1 var(--disp)", textTransform: uppercase }}>{selectedActivity.agent} Event Session</h2>
                 <p className="dash-sub" style={{ fontSize: "14px" }}>Replay of: <code>{selectedActivity.query}</code></p>
               </div>
@@ -410,7 +410,7 @@ export function ActivitySection() {
 
                     {step.scoreBreakdown && (
                       <div style={{ background: "var(--bg)", border: "1.5px solid var(--line)", borderRadius: "12px", padding: "14px", marginTop: "12px" }}>
-                        <div style={{ fontSize: "12px", textTransform: "uppercase", fontWeight: 800, color: "#141414", marginBottom: "8px" }}>📊 Score Breakdown</div>
+                        <div style={{ fontSize: "12px", textTransform: "uppercase", fontWeight: 800, color: "#141414", marginBottom: "8px" }}>Score Breakdown</div>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px" }}>
                           <div><span className="dash-sub">Similarity</span><b>{step.scoreBreakdown.similarity}</b></div>
                           <div><span className="dash-sub">Recency</span><b>+{((step.scoreBreakdown.recencyBoost - 1) * 100).toFixed(0)}%</b></div>

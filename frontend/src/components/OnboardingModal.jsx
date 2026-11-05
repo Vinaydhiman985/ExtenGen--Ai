@@ -157,7 +157,7 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
       <div className="dash-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "620px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
           <div>
-            <span className="dash-badge dash-badge-yellow">⚡ MCP Connection Hub</span>
+            <span className="dash-badge dash-badge-yellow">MCP Connection Hub</span>
             <h2 style={{ font: "400 30px/1 var(--disp)", textTransform: "uppercase", margin: "6px 0 0" }}>Connect Your AI Agent</h2>
             <p className="dash-sub">Provide this link to Cursor IDE, Claude Code, or Windsurf to share persistent memory.</p>
           </div>
@@ -176,7 +176,7 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
           fontSize: "12px",
         }}>
           <span style={{ fontWeight: 600, color: "#334155" }}>
-            🌐 Network Target:
+            Network Target:
           </span>
           <div style={{ display: "flex", gap: "6px" }}>
             <button
@@ -184,14 +184,14 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
               className={`dash-pill ${!useLanIp ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
               onClick={() => setUseLanIp(false)}
             >
-              💻 Localhost (127.0.0.1)
+              Localhost (127.0.0.1)
             </button>
             <button
               type="button"
               className={`dash-pill ${useLanIp ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
               onClick={() => setUseLanIp(true)}
             >
-              📡 Real LAN IP ({networkInfo.lanIp || "10.94.17.216"})
+              LAN IP ({networkInfo.lanIp || "10.94.17.216"})
             </button>
           </div>
         </div>
@@ -206,7 +206,7 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
           border: "1.5px solid #262626"
         }}>
           <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "#9ca3af", fontWeight: "bold", marginBottom: "6px" }}>
-            🔌 Official MCP Server SSE URL ({useLanIp ? "Real Network IP" : "Local Machine"}):
+            Official MCP Server SSE URL ({useLanIp ? "Real Network IP" : "Local Machine"}):
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
             <code style={{ fontSize: "15px", color: "#34d399", fontFamily: "monospace", wordBreak: "break-all" }}>
@@ -217,7 +217,7 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
               onClick={handleCopyLink}
               style={{ whiteSpace: "nowrap", minWidth: "95px", justifyContent: "center" }}
             >
-              {copiedLink ? "✓ Copied!" : "📋 Copy Link"}
+              {copiedLink ? "Copied" : "Copy Link"}
             </button>
           </div>
         </div>
@@ -235,7 +235,7 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
         }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "14px" }}>{agentsData.count > 0 ? "🟢" : "⚪"}</span>
+              <span className="dash-pulse-dot" style={{ background: agentsData.count > 0 ? "#10b981" : "#888", display: "inline-block" }} />
               <strong style={{ fontSize: "13.5px", color: agentsData.count > 0 ? "#065f46" : "#475569" }}>
                 {agentsData.count > 0
                   ? `${agentsData.count} Agent(s) Online: ${agentsData.agents.map(a => a.agentName).join(", ")}`
@@ -251,20 +251,20 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
             onClick={handleSimulateToggle}
             disabled={simulating}
           >
-            {simulating ? "..." : agentsData.count > 0 ? "Disconnect Test Agent" : "⚡ Simulate Connect"}
+            {simulating ? "..." : agentsData.count > 0 ? "Disconnect Test Agent" : "Simulate Connect"}
           </button>
         </div>
 
         {/* TABS */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
           {[
-            { id: "cursor", label: "⚡ Cursor IDE" },
-            { id: "windsurf", label: "🌊 Windsurf (Codeium)" },
-            { id: "vscode", label: "💻 VS Code (Cline/Roo)" },
-            { id: "claude", label: "🤖 Claude Code / Desktop" },
-            { id: "python", label: "🐍 Python / CrewAI / LangChain" },
-            { id: "chatgpt", label: "💬 ChatGPT / Custom GPT" },
-            { id: "api", label: "📡 REST API / cURL" },
+            { id: "cursor", label: "Cursor IDE" },
+            { id: "windsurf", label: "Windsurf (Codeium)" },
+            { id: "vscode", label: "VS Code (Cline/Roo)" },
+            { id: "claude", label: "Claude Code / Desktop" },
+            { id: "python", label: "Python / CrewAI / LangChain" },
+            { id: "chatgpt", label: "ChatGPT / Custom GPT" },
+            { id: "api", label: "REST API / cURL" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -289,7 +289,7 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
               {activeTab === "api" && "Direct cURL & REST API"}
             </span>
             <button className="dash-pill dash-pill-white dash-pill-sm" onClick={handleCopySnippet}>
-              {copiedSnippet ? "✓ Copied!" : "📋 Copy Snippet"}
+              {copiedSnippet ? "Copied" : "Copy Snippet"}
             </button>
           </div>
           <pre style={{ padding: "14px", margin: 0, fontSize: "12.5px", color: "#e2e8f0", maxHeight: "200px", overflowY: "auto", lineHeight: "1.5" }}>
@@ -309,10 +309,10 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
           color: "#475569"
         }}>
           <strong style={{ color: "#0f172a", display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-            💡 Ye JSON Snippet kya karta hai? (What is the purpose of this JSON?)
+            Purpose of this JSON configuration:
           </strong>
           <div>
-            AI tools (Cursor, Windsurf, Claude) ko pehle se nahi pata hota ki ExtenGen kahan chal raha hai. Yeh JSON unka <strong>"Configuration Passport"</strong> hai. Isme bataya jata hai ki server ka naam <code>extengen</code> hai aur connection URL <code>{mcpLink}</code> hai. Jaise hi AI IDE ye JSON padhti hai, wo background me connect hoke ExtenGen ke <code>store_observation</code> aur <code>recall_context</code> tools ko apne paas activate kar leti hai!
+            AI tools (Cursor, Windsurf, Claude) connect to ExtenGen using this configuration. It specifies the server name <code>extengen</code> and connection URL <code>{mcpLink}</code> so the agent can discover and invoke the <code>store_observation</code> and <code>recall_context</code> tools.
           </div>
         </div>
 

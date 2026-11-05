@@ -69,13 +69,13 @@ export function Navbar({
           className={`dash-pill ${activeView === "dashboard" ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
           onClick={() => setActiveView("dashboard")}
         >
-          📊 App Dashboard
+          Dashboard
         </button>
         <button
           className={`dash-pill ${activeView === "landing" ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
           onClick={() => setActiveView("landing")}
         >
-          🌐 Landing Page
+          Home
         </button>
       </div>
 
@@ -92,7 +92,7 @@ export function Navbar({
         <button
           className={`dash-status-indicator ${apiStatus.isLive ? "dash-status-live" : "dash-status-demo"}`}
           onClick={() => checkHealth()}
-          title={apiStatus.isLive ? "Connected to live Fastify backend (Port 3000). Click to re-check." : "Backend not detected on :3000. Operating in Demo Mode (Mock data fallback). Click to retry."}
+          title={apiStatus.isLive ? "Connected to live Fastify backend. Click to re-check." : "Operating in local demo mode. Click to retry connection."}
           style={{ cursor: "pointer", border: "1.5px solid currentColor" }}
         >
           <span className={`dash-pulse-dot ${apiStatus.isLive ? "live" : "demo"}`} />
@@ -105,8 +105,8 @@ export function Navbar({
             className="dash-pill dash-pill-white dash-pill-sm"
             onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
           >
-            <span>🏢 {currentOrg.name}</span>
-            <span>▾</span>
+            <span>{currentOrg.name}</span>
+            <span style={{ fontSize: "10px", marginLeft: "4px" }}>▾</span>
           </button>
 
           {orgDropdownOpen && (
@@ -132,7 +132,7 @@ export function Navbar({
 
         {/* Connect Agent */}
         <button className="dash-pill dash-pill-dark dash-pill-sm" onClick={onOpenOnboarding} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span>⚡ Connect Agent</span>
+          <span>Connect Agent</span>
           {activeAgentsCount > 0 && (
             <span style={{ background: "#10b981", color: "#ffffff", padding: "2px 7px", borderRadius: "10px", fontSize: "11px", fontWeight: "bold" }}>
               {activeAgentsCount} Online

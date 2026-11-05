@@ -170,7 +170,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
       <div className="dash-sec-header">
         <div>
           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
-            <span className="dash-badge dash-badge-dark">🧠 Memory Repository</span>
+            <span className="dash-badge dash-badge-dark">Memory Repository</span>
             {isLive ? (
               <span className="dash-status-indicator dash-status-live" style={{ padding: "3px 10px", fontSize: "11px" }}>
                 <span className="dash-pulse-dot live" /> Live API Connected
@@ -192,7 +192,6 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
             disabled={isRefreshing}
             title="Reload memories from server"
           >
-            <span className={isRefreshing ? "dash-spin" : ""}>🔄</span>
             <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
           </button>
 
@@ -200,7 +199,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
             className="dash-pill dash-pill-dark dash-pill-sm"
             onClick={() => setShowCreateModal(true)}
           >
-            ➕ Capture Observation
+            Capture Observation
           </button>
         </div>
       </div>
@@ -209,10 +208,10 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
       {showDuplicateAlert && activeTab === "Proposed" && proposedCount > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderRadius: "16px", background: "var(--yellow)", border: "1.5px solid var(--ink)", fontSize: "14px", fontWeight: 600 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span>⚠️</span>
+            <span className="dash-badge dash-badge-dark">Notice</span>
             <div>
-              <strong>Feature #6 Duplicate Store Warning:</strong>
-              <span> System detected 1 proposed memory with &gt;90% cosine similarity to existing entries. Review before indexing to prevent drift.</span>
+              <strong>Duplicate Store Warning:</strong>
+              <span> System detected proposed memory with &gt;90% cosine similarity to existing entries. Review before indexing to prevent drift.</span>
             </div>
           </div>
           <button style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }} onClick={() => setShowDuplicateAlert(false)}>✕</button>
@@ -229,7 +228,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
               className={`dash-tab-btn ${activeTab === tab ? "active" : ""}`}
               onClick={() => setActiveTab(tab)}
             >
-              <span>{tab === "Proposed" ? "📥 Proposed (Review Queue)" : tab}</span>
+              <span>{tab === "Proposed" ? "Proposed (Review Queue)" : tab}</span>
               <span style={{ fontSize: "12px", background: activeTab === tab ? "#fff" : "#e0e0dc", color: "#141414", padding: "2px 8px", borderRadius: "999px" }}>{count}</span>
             </button>
           );
@@ -239,7 +238,10 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
       {/* CONTROLS STRIP */}
       <div className="dash-controls">
         <div className="dash-search-input-box">
-          <span>🔍</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
           <input
             type="text"
             className="dash-input"
@@ -256,7 +258,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
               className={`dash-pill ${selectedTag === tag ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
               onClick={() => setSelectedTag(tag)}
             >
-              {tag === "all" ? "🏷️ All Tags" : `#${tag}`}
+              {tag === "all" ? "All Tags" : `#${tag}`}
             </button>
           ))}
         </div>
@@ -266,13 +268,11 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
       <div className="dash-box dash-table-box">
         {isLoading ? (
           <div style={{ padding: "50px", textAlign: "center" }}>
-            <span className="dash-spin" style={{ fontSize: "32px", display: "inline-block", marginBottom: "12px" }}>⚙️</span>
             <h3>Loading Vector Memories...</h3>
             <p className="dash-sub">Connecting to GET /api/v1/observations</p>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: "40px", textAlign: "center" }}>
-            <span style={{ fontSize: "32px" }}>📭</span>
             <h3>No memories in "{activeTab}" status</h3>
             <p className="dash-sub">Try clearing your search query, selecting a different status tab, or capturing a new observation.</p>
           </div>
@@ -298,7 +298,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
                         <strong style={{ fontSize: "15px", color: "#141414" }}>{mem.title}</strong>
                         {mem.duplicateWarning && (
                           <span className="dash-badge dash-badge-yellow" title={mem.duplicateWarning}>
-                            ⚠️ Duplicate Warning
+                            Duplicate Warning
                           </span>
                         )}
                       </div>
@@ -316,7 +316,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
                     <td>
                       {mem.secretsRedacted > 0 ? (
                         <span className="dash-badge dash-badge-yellow">
-                          🔒 {mem.secretsRedacted} secret{mem.secretsRedacted > 1 ? "s" : ""} redacted
+                          {mem.secretsRedacted} secret{mem.secretsRedacted > 1 ? "s" : ""} redacted
                         </span>
                       ) : (
                         <span className="dash-sub">0 redacted</span>
@@ -337,13 +337,13 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
                             className="dash-pill dash-pill-green dash-pill-sm"
                             onClick={() => handleApprove(mem.id)}
                           >
-                            ✓ Approve
+                            Approve
                           </button>
                           <button
                             className="dash-pill dash-pill-dark dash-pill-sm"
                             onClick={() => handleReject(mem.id)}
                           >
-                            ✕ Reject
+                            Reject
                           </button>
                         </div>
                       ) : (
@@ -361,7 +361,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
                           setSelectedMemory(mem);
                         }}
                       >
-                        👁️ Drawer
+                        Drawer
                       </button>
                     </td>
                   </tr>
@@ -447,7 +447,7 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
                   className="dash-pill dash-pill-dark"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "⚡ Vectorizing & Saving..." : "💾 Save & Vectorize"}
+                  {isSubmitting ? "Vectorizing & Saving..." : "Save Observation"}
                 </button>
               </div>
             </form>
@@ -496,11 +496,11 @@ export function MemoriesSection({ initialTab = "Indexed" }) {
             <div className="dash-drawer-footer">
               {selectedMemory.status === "Proposed" ? (
                 <>
-                  <button className="dash-pill dash-pill-green" onClick={() => handleApprove(selectedMemory.id)}>✓ Approve & Index</button>
-                  <button className="dash-pill dash-pill-dark" onClick={() => handleReject(selectedMemory.id)}>✕ Reject</button>
+                  <button className="dash-pill dash-pill-green" onClick={() => handleApprove(selectedMemory.id)}>Approve & Index</button>
+                  <button className="dash-pill dash-pill-dark" onClick={() => handleReject(selectedMemory.id)}>Reject</button>
                 </>
               ) : selectedMemory.status !== "Verified" ? (
-                <button className="dash-pill dash-pill-yellow" onClick={() => handleVerify(selectedMemory.id)}>⭐ Mark as Verified</button>
+                <button className="dash-pill dash-pill-yellow" onClick={() => handleVerify(selectedMemory.id)}>Mark as Verified</button>
               ) : (
                 <button className="dash-pill dash-pill-white" onClick={() => setSelectedMemory(null)}>Close</button>
               )}

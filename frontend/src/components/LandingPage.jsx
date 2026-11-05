@@ -65,7 +65,7 @@ function Nav({ onOpenDashboard }) {
           onClick={onOpenDashboard}
           style={{ cursor: "pointer", border: "none", font: "inherit" }}
         >
-          📊 App Dashboard
+          App Dashboard
         </button>
         <a
           className="pill white"
@@ -74,7 +74,7 @@ function Nav({ onOpenDashboard }) {
           rel="noopener noreferrer"
           style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
         >
-          <span>🐙</span> GitHub
+          GitHub
         </a>
       </div>
     </header>
@@ -97,7 +97,7 @@ function Hero({ onOpenDashboard }) {
             onClick={onOpenDashboard}
             style={{ cursor: "pointer", border: "none", font: "inherit" }}
           >
-            📊 Open App Dashboard
+            Open App Dashboard
           </button>
           <a className="pill ghost big" href="#how">See how it works</a>
         </div>
@@ -190,7 +190,7 @@ export function LandingPage({ onGoToDashboard }) {
               onClick={onGoToDashboard}
               style={{ cursor: "pointer", border: "none", font: "inherit" }}
             >
-              🚀 Launch App Dashboard
+              Launch App Dashboard
             </button>
             <a
               className="pill ghost big"
@@ -199,7 +199,7 @@ export function LandingPage({ onGoToDashboard }) {
               rel="noopener noreferrer"
               style={{ textDecoration: "none" }}
             >
-              📖 Read the Docs
+              Read the Docs
             </a>
           </div>
           <pre className="install">claude mcp add extengen http://localhost:3000/sse</pre>

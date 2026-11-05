@@ -1,58 +1,106 @@
 import React from "react";
 
+const Icons = {
+  overview: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7"></rect>
+      <rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="14" y="14" width="7" height="7"></rect>
+      <rect x="3" y="14" width="7" height="7"></rect>
+    </svg>
+  ),
+  simulator: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+  ),
+  activity: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+    </svg>
+  ),
+  memories: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+    </svg>
+  ),
+  playground: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+    </svg>
+  ),
+  gaps: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+  ),
+  github: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+    </svg>
+  ),
+};
+
 export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCount, mobileOpen, setMobileOpen }) {
   const sections = [
     {
       id: "overview",
       name: "Overview",
-      icon: "📊",
-      desc: "KPIs, stats & live feed",
+      icon: Icons.overview,
+      desc: "Telemetry, metrics and feed",
       badge: null
     },
     {
       id: "simulator",
       name: "Multi-Agent Collab",
-      icon: "🤖",
-      desc: "Live cross-agent proof lab",
+      icon: Icons.simulator,
+      desc: "Cross-agent context sharing",
       badge: "PROOF",
       badgeColor: "green"
     },
     {
       id: "activity",
       name: "Activity",
-      icon: "⚡",
-      desc: "Live calls & session replays",
+      icon: Icons.activity,
+      desc: "Tool calls and replays",
       badge: "LIVE",
       badgeColor: "green"
     },
     {
       id: "memories",
       name: "Memories",
-      icon: "🧠",
-      desc: "Table, review & lifecycle",
+      icon: Icons.memories,
+      desc: "Vector store and lifecycle",
       badge: pendingCount > 0 ? `${pendingCount} review` : null,
       badgeColor: "yellow"
     },
     {
       id: "playground",
       name: "Recall Playground",
-      icon: "🎯",
-      desc: "Test queries & explainability",
+      icon: Icons.playground,
+      desc: "Semantic query ranking",
       badge: null
     },
     {
       id: "gaps",
       name: "Knowledge Gaps",
-      icon: "❓",
-      desc: "Zero-result query clusters",
+      icon: Icons.gaps,
+      desc: "Zero-match query clusters",
       badge: gapsCount > 0 ? `${gapsCount} gaps` : null,
       badgeColor: "red"
     },
     {
       id: "github",
       name: "GitHub Sync",
-      icon: "🐙",
-      desc: "Repo ingest & webhook triggers",
+      icon: Icons.github,
+      desc: "Repositories and webhooks",
       badge: "SYNC",
       badgeColor: "dark"
     }
@@ -78,7 +126,9 @@ export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCou
               className={`dash-sidebar-item ${isActive ? "active" : ""}`}
               onClick={() => handleSelect(sec.id)}
             >
-              <span className="dash-sidebar-icon">{sec.icon}</span>
+              <span className="dash-sidebar-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {sec.icon}
+              </span>
               <div className="dash-sidebar-label-box">
                 <span className="dash-sidebar-name">{sec.name}</span>
                 <span className="dash-sidebar-desc">{sec.desc}</span>
@@ -96,12 +146,12 @@ export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCou
       <div>
         <div className="dash-sidebar-footer-card">
           <div className="dash-sfc-header">
-            <span>🚀 Shared Memory Status</span>
+            <span>Shared Memory Status</span>
           </div>
-          <p className="dash-sfc-text">Fastify SSE + pgvector is online and processing real-time embeddings.</p>
+          <p className="dash-sfc-text">Fastify SSE + pgvector is online and processing embeddings.</p>
           <div className="dash-sfc-stats">
             <span>Latency: <b>18ms</b></span>
-            <span>Index: <b>HNSW (1536d)</b></span>
+            <span>Index: <b>HNSW (768d)</b></span>
           </div>
         </div>
       </div>

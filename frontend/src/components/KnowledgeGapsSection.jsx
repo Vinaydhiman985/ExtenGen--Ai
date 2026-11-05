@@ -88,7 +88,7 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-red">❓ Feature #2 Knowledge Gaps</span>
+          <span className="dash-badge dash-badge-red">Knowledge Gaps</span>
           <h1>Unanswered Knowledge Gaps</h1>
           <p>Zero-result queries grouped by topic. Identified when AI agents ask questions that return no matching memories in ExtenGen.</p>
         </div>
@@ -134,7 +134,7 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
                   <td>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       {gap.agentClients.map((client) => (
-                        <strong key={client} style={{ fontSize: "14px", color: "#141414" }}>🤖 {client}</strong>
+                        <strong key={client} style={{ fontSize: "14px", color: "#141414" }}>{client}</strong>
                       ))}
                     </div>
                   </td>
@@ -152,7 +152,7 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
                       className="dash-pill dash-pill-dark dash-pill-sm"
                       onClick={() => handleOpenCreate(gap)}
                     >
-                      ➕ Create Memory
+                      Create Memory
                     </button>
                   </td>
                 </tr>
@@ -168,7 +168,7 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
           <div className="dash-modal-card" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
               <div>
-                <span className="dash-badge dash-badge-dark">➕ Fill Knowledge Gap</span>
+                <span className="dash-badge dash-badge-dark">Fill Knowledge Gap</span>
                 <h2 style={{ font: "400 32px/1 var(--disp)", textTransform: "uppercase" }}>Create Memory</h2>
                 <p className="dash-sub">Addressing topic: <strong>{createGapModal.topic}</strong></p>
               </div>
@@ -177,7 +177,7 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
 
             {createdSuccess ? (
               <div style={{ padding: "30px", textAlign: "center" }}>
-                <span style={{ fontSize: "36px" }}>🎉</span>
+                <span className="dash-badge dash-badge-green" style={{ fontSize: "14px", padding: "6px 14px", display: "inline-block", marginBottom: "12px" }}>Success</span>
                 <h3>Memory Created & Sent to Review Queue!</h3>
               </div>
             ) : (
@@ -207,7 +207,7 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
                   <button type="button" className="dash-pill dash-pill-white" onClick={() => setCreateGapModal(null)}>Cancel</button>
-                  <button type="submit" className="dash-pill dash-pill-dark">✓ Save Memory</button>
+                  <button type="submit" className="dash-pill dash-pill-dark">Save Memory</button>
                 </div>
               </form>
             )}

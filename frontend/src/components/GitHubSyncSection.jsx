@@ -2,32 +2,27 @@ import React, { useState, useEffect } from "react";
 import { ingestGitHub, fetchObservations } from "../services/api.js";
 
 export function GitHubSyncSection({ onNavigateToMemories }) {
-  const [repoInput, setRepoInput] = useState("neeraj-ch7/ExtenGen");
-  const [branchInput, setBranchInput] = useState("main");
+  const [repoInput, setRepoInput] = useState("Vinaydhiman985/ExtenGen--Ai");
   const [tokenInput, setTokenInput] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
-  const [lastSyncResult, setLastSyncResult] = useState(null);
   const [syncError, setSyncError] = useState(null);
+  const [lastSyncResult, setLastSyncResult] = useState(null);
   const [activeTab, setActiveTab] = useState("events");
-
-  // Real Ingested Events from Database
   const [realEvents, setRealEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
 
+  // Load real ingested GitHub memories from DB
   const loadRealGitHubData = async () => {
     try {
-      const res = await fetchObservations({ limit: 100 });
+      const res = await fetchObservations({ limit: 50 });
       if (res.ok && res.observations) {
-        const ghObservations = res.observations.filter(
+        const ghMemories = res.observations.filter(
           (obs) => obs.metadata?.repo || obs.tags?.includes("github") || obs.tags?.includes("commit") || obs.tags?.includes("pull_request")
         );
-        setRealEvents(ghObservations);
+        setRealEvents(ghMemories);
       }
     } catch {
-      // Handled
-    } finally {
-      setLoading(false);
+      // Fallback
     }
   };
 
@@ -35,48 +30,47 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
     loadRealGitHubData();
   }, []);
 
-  const cleanRepo = (val) => {
-    let s = (val || "").trim();
+  const handleSyncSubmit = async (e) => {
+    e.preventDefault();
+    let s = repoInput.trim();
     s = s.replace(/^https?:\/\/github\.com\//i, "");
     s = s.replace(/^git@github\.com:/i, "");
     s = s.replace(/\.git$/i, "");
     s = s.replace(/^\/+|\/+$/g, "");
-    return s;
-  };
 
-  const handleSyncSubmit = async (e) => {
-    e.preventDefault();
+    const parts = s.split("/");
+    const owner = parts[0];
+    const repo = parts[1];
+
+    if (!owner || !repo || parts.length > 2) {
+      setSyncError("Please enter a valid repository in the format 'owner/repo' or paste a GitHub URL.");
+      return;
+    }
+
     setIsSyncing(true);
     setSyncSuccess(false);
     setSyncError(null);
 
-    const targetRepo = cleanRepo(repoInput);
-    if (!targetRepo || !targetRepo.includes("/")) {
-      setSyncError("Please enter a valid repository in the format 'owner/repo' or paste a GitHub URL.");
-      setIsSyncing(false);
-      return;
-    }
-
     try {
       const result = await ingestGitHub({
-        repo: targetRepo,
+        owner,
+        repo,
         token: tokenInput.trim() || undefined,
-        limit: 10,
+        limitCommits: 10,
+        limitPRs: 5
       });
 
       if (result.ok) {
         setSyncSuccess(true);
         setLastSyncResult({
-          repo: result.repo,
-          commits: result.ingestedCommits,
-          pullRequests: result.ingestedPRs,
-          memoriesCreated: result.totalIngested,
-          time: "Just now",
+          repo: `${owner}/${repo}`,
+          commits: result.data?.commitsIngested || 0,
+          pullRequests: result.data?.prsIngested || 0,
+          memoriesCreated: result.data?.totalIngested || 0
         });
-        // Immediately reload real observations
         await loadRealGitHubData();
       } else {
-        setSyncError(result.error || "Ingestion failed. Make sure the repository exists and is accessible.");
+        setSyncError(result.error || "Failed to trigger GitHub sync.");
       }
     } catch (err) {
       setSyncError(err.message || "Failed to trigger GitHub sync.");
@@ -85,11 +79,14 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
     }
   };
 
-  // Compute live stats from real events
-  const commitsCount = realEvents.filter((e) => e.tags?.includes("commit") || e.metadata?.commit_hash).length;
-  const prsCount = realEvents.filter((e) => e.tags?.includes("pull_request") || e.metadata?.pr_number).length;
-  const uniqueReposSet = new Set(realEvents.map((e) => e.metadata?.repo).filter(Boolean));
-  if (repoInput && !uniqueReposSet.has(repoInput)) {
+  const commitsCount = realEvents.filter(e => !e.tags?.includes("pull_request")).length;
+  const prsCount = realEvents.filter(e => e.tags?.includes("pull_request")).length;
+  
+  const uniqueReposSet = new Set();
+  realEvents.forEach(e => {
+    if (e.metadata?.repo) uniqueReposSet.add(e.metadata.repo);
+  });
+  if (uniqueReposSet.size === 0 && repoInput) {
     uniqueReposSet.add(repoInput);
   }
   const uniqueRepos = Array.from(uniqueReposSet);
@@ -98,7 +95,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-dark">🐙 Automated Repository Ingestion</span>
+          <span className="dash-badge dash-badge-dark">Automated Repository Ingestion</span>
           <h1>GitHub Sync & Webhooks</h1>
           <p>Ingest merged Pull Requests, commit messages, and diff summaries into ExtenGen memory via REST API or automated GitHub Webhooks.</p>
         </div>
@@ -109,7 +106,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
             <span>Repositories Synced</span>
-            <span>🐙</span>
+            <span className="dash-badge dash-badge-dark">REPO</span>
           </div>
           <div className="dash-kpi-val">{uniqueRepos.length}</div>
           <div className="dash-kpi-sub pos">
@@ -120,7 +117,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
             <span>Commits Extracted</span>
-            <span>📝</span>
+            <span className="dash-badge dash-badge-dark">GIT</span>
           </div>
           <div className="dash-kpi-val">{commitsCount}</div>
           <div className="dash-kpi-sub pos">
@@ -131,7 +128,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
             <span>Ingested PRs</span>
-            <span>🔀</span>
+            <span className="dash-badge dash-badge-dark">PR</span>
           </div>
           <div className="dash-kpi-val">{prsCount}</div>
           <div className="dash-kpi-sub pos">
@@ -142,7 +139,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
         <div className="dash-kpi-card highlight">
           <div className="dash-kpi-top">
             <span>Total GitHub Memories</span>
-            <span>🧠</span>
+            <span className="dash-badge dash-badge-green">LIVE</span>
           </div>
           <div className="dash-kpi-val">{realEvents.length}</div>
           <div className="dash-kpi-sub pos">
@@ -155,12 +152,12 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
       <div className="dash-grid-2">
         {/* REPO SYNC TRIGGER FORM */}
         <div className="dash-box">
-          <h3>🚀 Ingest GitHub Repository</h3>
+          <h3>Ingest GitHub Repository</h3>
           <p className="dash-sub" style={{ marginTop: "4px" }}>Trigger on-demand fetch via `/api/v1/ingest/github` endpoint</p>
 
           {syncSuccess && (
             <div style={{ background: "#dcfce7", border: "1.5px solid #118a4b", borderRadius: "14px", padding: "14px", margin: "16px 0", color: "#0e4d3a" }}>
-              <strong>✓ Ingestion Job Completed!</strong>
+              <strong>Ingestion Job Completed</strong>
               <p style={{ fontSize: "13.5px", marginTop: "4px" }}>
                 Ingested <strong>{lastSyncResult?.commits} commits</strong> and <strong>{lastSyncResult?.pullRequests} PRs</strong> from <code>{lastSyncResult?.repo}</code>. Created {lastSyncResult?.memoriesCreated} vector memories.
               </p>
@@ -169,50 +166,42 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
 
           {syncError && (
             <div style={{ background: "#fee2e2", border: "1.5px solid #dc2626", borderRadius: "14px", padding: "14px", margin: "16px 0", color: "#7f1d1d" }}>
-              <strong>⚠ Ingestion Notice / Error</strong>
+              <strong>Ingestion Notice / Error</strong>
               <p style={{ fontSize: "13.5px", marginTop: "4px" }}>{syncError}</p>
               <p style={{ fontSize: "12px", marginTop: "4px", opacity: 0.8 }}>For private repositories or higher rate limits, please provide a GitHub Personal Access Token below.</p>
             </div>
           )}
 
-          <form onSubmit={handleSyncSubmit} style={{ marginTop: "16px" }}>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ fontSize: "13px", fontWeight: 700, display: "block" }}>Repository Name (owner/repo)</label>
+          <form onSubmit={handleSyncSubmit} style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div>
+              <label style={{ fontSize: "13px", fontWeight: 700, display: "block" }}>Target Repository</label>
               <input
                 type="text"
                 className="dash-input"
-                style={{ border: "1.5px solid #141414", borderRadius: "10px", padding: "10px 14px", marginTop: "4px", width: "100%" }}
+                style={{ width: "100%", marginTop: "6px", fontFamily: "monospace", fontSize: "14px", background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "12px", padding: "10px 14px" }}
                 value={repoInput}
                 onChange={(e) => setRepoInput(e.target.value)}
-                placeholder="e.g. neeraj-ch7/ExtenGen"
+                placeholder="owner/repo (e.g. Vinaydhiman985/ExtenGen--Ai)"
                 required
               />
+              <span className="dash-sub" style={{ fontSize: "12px", marginTop: "4px", display: "block" }}>
+                Accepts GitHub URLs (https://github.com/...) or shorthand owner/repo format.
+              </span>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, display: "block" }}>Target Branch</label>
-                <input
-                  type="text"
-                  className="dash-input"
-                  style={{ border: "1.5px solid #141414", borderRadius: "10px", padding: "10px 14px", marginTop: "4px", width: "100%" }}
-                  value={branchInput}
-                  onChange={(e) => setBranchInput(e.target.value)}
-                  placeholder="main"
-                />
-              </div>
-
-              <div>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <label style={{ fontSize: "12px", fontWeight: 700, display: "block" }}>GitHub PAT Token (Optional for public)</label>
-                <input
-                  type="password"
-                  className="dash-input"
-                  style={{ border: "1.5px solid #141414", borderRadius: "10px", padding: "10px 14px", marginTop: "4px", width: "100%" }}
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  placeholder="ghp_xxxxxxxxxxxx"
-                />
+                <span className="dash-badge dash-badge-white" style={{ fontSize: "10px" }}>repo & read:org scope</span>
               </div>
+              <input
+                type="password"
+                className="dash-input"
+                style={{ width: "100%", marginTop: "6px", fontFamily: "monospace", fontSize: "14px", background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "12px", padding: "10px 14px" }}
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx (Leaves blank for public repos)"
+              />
             </div>
 
             <button
@@ -221,14 +210,14 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
               style={{ width: "100%", cursor: "pointer", justifyContent: "center" }}
               disabled={isSyncing}
             >
-              {isSyncing ? "⚡ Fetching & Vectorizing GitHub Data..." : "🚀 Ingest GitHub Repository"}
+              {isSyncing ? "Fetching & Vectorizing GitHub Data..." : "Ingest GitHub Repository"}
             </button>
           </form>
         </div>
 
         {/* AUTOMATED WEBHOOK CONFIGURATION */}
         <div className="dash-box">
-          <h3>⚡ Automated GitHub Webhook</h3>
+          <h3>Automated GitHub Webhook</h3>
           <p className="dash-sub" style={{ marginTop: "4px" }}>Auto-ingest PRs and commits when pushed or merged</p>
 
           <div style={{ background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "14px", padding: "16px", marginTop: "16px" }}>
@@ -239,13 +228,13 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
 
             <span className="dash-sub" style={{ textTransform: "uppercase", fontWeight: 700 }}>Subscribed GitHub Events</span>
             <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap" }}>
-              <span className="dash-badge dash-badge-dark">🔀 pull_request (merged)</span>
-              <span className="dash-badge dash-badge-yellow">📝 push (commits)</span>
+              <span className="dash-badge dash-badge-dark">pull_request (merged)</span>
+              <span className="dash-badge dash-badge-yellow">push (commits)</span>
             </div>
           </div>
 
           <div style={{ marginTop: "16px", fontSize: "13.5px", color: "#666" }}>
-            💡 When a developer merges a Pull Request or pushes to main branch, ExtenGen automatically extracts architectural decisions and stores them with RLS org permissions.
+            When a developer merges a Pull Request or pushes to main branch, ExtenGen automatically extracts architectural decisions and stores them with RLS org permissions.
           </div>
         </div>
       </div>
@@ -256,13 +245,13 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
           className={`dash-tab-btn ${activeTab === "events" ? "active" : ""}`}
           onClick={() => setActiveTab("events")}
         >
-          🔀 Live Ingested Commits & PRs ({realEvents.length})
+          Live Ingested Commits & PRs ({realEvents.length})
         </button>
         <button
           className={`dash-tab-btn ${activeTab === "repos" ? "active" : ""}`}
           onClick={() => setActiveTab("repos")}
         >
-          📂 Synced Repositories ({uniqueRepos.length})
+          Synced Repositories ({uniqueRepos.length})
         </button>
       </div>
 
@@ -271,7 +260,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
           <div className="dash-table-wrap">
             {realEvents.length === 0 ? (
               <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
-                No GitHub memories ingested yet. Use the form above to ingest commits from <code>Vinaydhiman985/ExtenGen--Ai</code>!
+                No GitHub memories ingested yet. Use the form above to ingest commits from <code>Vinaydhiman985/ExtenGen--Ai</code>.
               </div>
             ) : (
               <table className="dash-table">
@@ -290,7 +279,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
                     <tr key={ev.id} className="dash-row">
                       <td>
                         <span className={`dash-badge ${ev.tags?.includes("pull_request") ? "dash-badge-dark" : "dash-badge-yellow"}`}>
-                          {ev.tags?.includes("pull_request") ? "🔀 PR Merged" : "📝 Commit Push"}
+                          {ev.tags?.includes("pull_request") ? "PR Merged" : "Commit Push"}
                         </span>
                       </td>
                       <td><code className="dash-mono">{ev.metadata?.repo || repoInput}</code></td>
@@ -302,7 +291,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
                       <td style={{ fontSize: "13px", color: "#666", whiteSpace: "nowrap" }}>{ev.createdAt}</td>
                       <td>
                         <button className="dash-pill dash-pill-white dash-pill-sm" onClick={() => onNavigateToMemories("Indexed")}>
-                          🧠 View
+                          View
                         </button>
                       </td>
                     </tr>
@@ -326,9 +315,9 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
               <tbody>
                 {uniqueRepos.map((repoName) => (
                   <tr key={repoName} className="dash-row">
-                    <td><strong style={{ fontSize: "15px", color: "#141414" }}>🐙 {repoName}</strong></td>
+                    <td><strong style={{ fontSize: "15px", color: "#141414" }}>{repoName}</strong></td>
                     <td><code className="dash-mono">main</code></td>
-                    <td><span className="dash-badge dash-badge-green">✓ Active Ingestion</span></td>
+                    <td><span className="dash-badge dash-badge-green">Active Ingestion</span></td>
                     <td><b className="dash-mono">{realEvents.filter(e => e.metadata?.repo === repoName || repoName === repoInput).length}</b></td>
                     <td><span className="dash-badge dash-badge-dark">REST API & Webhook</span></td>
                   </tr>

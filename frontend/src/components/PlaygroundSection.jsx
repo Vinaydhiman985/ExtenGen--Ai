@@ -48,7 +48,7 @@ export function PlaygroundSection() {
       <div className="dash-sec-header">
         <div>
           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
-            <span className="dash-badge dash-badge-dark">🎯 Interactive Testing</span>
+            <span className="dash-badge dash-badge-dark">Interactive Testing</span>
             {hasExecuted && (
               isLive ? (
                 <span className="dash-status-indicator dash-status-live" style={{ padding: "3px 10px", fontSize: "11px" }}>
@@ -69,7 +69,7 @@ export function PlaygroundSection() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "24px" }}>
         {/* CONTROLS */}
         <div className="dash-box">
-          <h3>🎮 Query Parameters</h3>
+          <h3>Query Parameters</h3>
           <p className="dash-sub">Simulate an incoming AI agent prompt request</p>
 
           <div style={{ marginTop: "18px" }}>
@@ -139,12 +139,9 @@ export function PlaygroundSection() {
             disabled={isExecuting}
           >
             {isExecuting ? (
-              <>
-                <span className="dash-spin">⚙️</span>
-                <span>Searching Vector Space...</span>
-              </>
+              <span>Searching Vector Space...</span>
             ) : (
-              "🚀 Execute Recall Search"
+              "Execute Recall Search"
             )}
           </button>
 
@@ -159,8 +156,8 @@ export function PlaygroundSection() {
         <div className="dash-box">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
             <div>
-              <h3>Results & "Why this memory?"</h3>
-              <p className="dash-sub">Explainability breakdown & prompt injection preview</p>
+              <h3>Results & Explainability</h3>
+              <p className="dash-sub">Score breakdown and prompt injection preview</p>
             </div>
             <span className={`dash-badge ${results.length > 0 ? "dash-badge-green" : "dash-badge-yellow"}`}>
               {results.length} Match{results.length === 1 ? "" : "es"} (Threshold: {threshold})
@@ -169,10 +166,9 @@ export function PlaygroundSection() {
 
           {results.length === 0 ? (
             <div style={{ padding: "40px", textAlign: "center", background: "var(--bg)", border: "1.5px dashed var(--ink)", borderRadius: "18px" }}>
-              <span style={{ fontSize: "32px", display: "block", marginBottom: "8px" }}>🔍</span>
-              <strong style={{ fontSize: "16px" }}>No memories reached threshold {threshold}</strong>
+              <strong style={{ fontSize: "16px", display: "block" }}>No memories reached threshold {threshold}</strong>
               <p className="dash-sub" style={{ marginTop: "6px" }}>
-                Try lowering the cosine similarity threshold (e.g. 0.50) or capture a new observation in the Memories Hub.
+                Try lowering the cosine similarity threshold (e.g. 0.35) or capture a new observation in the Memories Hub.
               </p>
             </div>
           ) : (

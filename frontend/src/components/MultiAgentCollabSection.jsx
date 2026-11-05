@@ -3,90 +3,95 @@ import { runMultiAgentSimulation } from "../services/api.js";
 
 const PRESET_SCENARIOS = [
   {
-    name: "Payment Gateway Idempotency Standard",
-    agent1Name: "Claude Code CLI v1.2",
-    agent1Title: "Stripe & PayPal Idempotency Key Standard",
-    agent1Content: "All Stripe and PayPal refund API calls must pass an idempotency_key header with a 24-hour Redis TTL to prevent double debits on network retry.",
-    agent1Tags: "payments, idempotency, redis",
-    agent2Name: "Cursor IDE v0.42",
-    agent2Query: "How should I handle duplicate payments in refund route?",
-    threshold: 0.25,
+    name: "Stripe Refund Idempotency Rule",
+    agent1: "Claude Code CLI",
+    agent2: "Cursor IDE",
+    ruleTitle: "Payment Standard: Stripe Refund Idempotency Keys",
+    ruleContent: "All Stripe refund requests must include an idempotency_key formatted as 'stripe:refund:${orderId}' with a 24-hour Redis TTL to prevent duplicate refunds on network retry.",
+    ruleTags: ["stripe", "payments", "idempotency", "redis"],
+    query: "How do I prevent duplicate payments when triggering a refund in the order cancel controller?",
+    expectedMatch: "Stripe refund requests must include an idempotency_key"
   },
   {
-    name: "Database RLS Tenant Isolation Rule",
-    agent1Name: "DevOps Agent (Windsurf)",
-    agent1Title: "PostgreSQL Row-Level Security Isolation Policy",
-    agent1Content: "Always set app.current_org_id inside transaction before querying multi-tenant tables. Never bypass RLS in public endpoints.",
-    agent1Tags: "database, security, rls",
-    agent2Name: "Claude Code (Terminal 2)",
-    agent2Query: "How to safely query tenant observations in new API endpoint?",
-    threshold: 0.25,
+    name: "Cursor Pagination Standard",
+    agent1: "Cursor IDE",
+    agent2: "Windsurf (Codeium)",
+    ruleTitle: "API Design: Cursor-Based Pagination for High Volume Endpoints",
+    ruleContent: "Do not use SQL OFFSET pagination on /invoices, /orders, or /logs. Use opaque base64 cursors encoded from 'created_at:id' with WHERE (created_at, id) < ($1, $2).",
+    ruleTags: ["api", "db", "pagination", "standards"],
+    query: "Implement pagination for the transactions endpoint without performance degradation.",
+    expectedMatch: "Do not use SQL OFFSET pagination"
   },
   {
-    name: "Fastify CORS & SSE Header Configuration",
-    agent1Name: "Backend Arch Agent",
-    agent1Title: "Fastify CORS Configuration for SSE Streaming",
-    agent1Content: "Configure @fastify/cors with origin: true and credentials: true to allow browser clients to stream MCP Server-Sent Events without preflight CORS rejection.",
-    agent1Tags: "fastify, cors, sse",
-    agent2Name: "Frontend Agent (Copilot)",
-    agent2Query: "Why is EventSource connection to /sse getting blocked by CORS in browser?",
-    threshold: 0.25,
+    name: "Vitest Thread Isolation Config",
+    agent1: "Codex CLI",
+    agent2: "Claude Code CLI",
+    ruleTitle: "Testing Framework: Vitest Thread Isolation with Fastify",
+    ruleContent: "When testing Fastify server routes with mock SQLite and real memory tables, run Vitest with isolate: false to avoid duplicate server port collisions.",
+    ruleTags: ["testing", "vitest", "fastify"],
+    query: "Why are my integration tests failing with EADDRINUSE on port 3000?",
+    expectedMatch: "run Vitest with isolate: false to avoid duplicate server port collisions"
   }
 ];
 
 export function MultiAgentCollabSection() {
   const [selectedScenarioIdx, setSelectedScenarioIdx] = useState(0);
-  const scenario = PRESET_SCENARIOS[selectedScenarioIdx];
-
-  const [agent1Name, setAgent1Name] = useState(scenario.agent1Name);
-  const [agent1Title, setAgent1Title] = useState(scenario.agent1Title);
-  const [agent1Content, setAgent1Content] = useState(scenario.agent1Content);
-
-  const [agent2Name, setAgent2Name] = useState(scenario.agent2Name);
-  const [agent2Query, setAgent2Query] = useState(scenario.agent2Query);
-  const [threshold, setThreshold] = useState(scenario.threshold);
-
   const [isRunning, setIsRunning] = useState(false);
-  const [executionStep, setExecutionStep] = useState(0); // 0: idle, 1: agent1 storing, 2: stored, 3: agent2 recalling, 4: complete
+  const [executionStep, setExecutionStep] = useState(0); // 0: Idle, 1: Agent 1 Writing, 2: Embedded, 3: Agent 2 Querying, 4: Done
   const [simResult, setSimResult] = useState(null);
 
+  const scenario = PRESET_SCENARIOS[selectedScenarioIdx];
+
+  const [agent1Name, setAgent1Name] = useState(scenario.agent1);
+  const [agent1Title, setAgent1Title] = useState(scenario.ruleTitle);
+  const [agent1Content, setAgent1Content] = useState(scenario.ruleContent);
+
+  const [agent2Name, setAgent2Name] = useState(scenario.agent2);
+  const [agent2Query, setAgent2Query] = useState(scenario.query);
+
   const handleSelectScenario = (idx) => {
+    const sc = PRESET_SCENARIOS[idx];
     setSelectedScenarioIdx(idx);
-    const s = PRESET_SCENARIOS[idx];
-    setAgent1Name(s.agent1Name);
-    setAgent1Title(s.agent1Title);
-    setAgent1Content(s.agent1Content);
-    setAgent2Name(s.agent2Name);
-    setAgent2Query(s.agent2Query);
-    setThreshold(s.threshold);
+    setAgent1Name(sc.agent1);
+    setAgent1Title(sc.ruleTitle);
+    setAgent1Content(sc.ruleContent);
+    setAgent2Name(sc.agent2);
+    setAgent2Query(sc.query);
     setExecutionStep(0);
     setSimResult(null);
   };
 
   const handleRunFullProof = async () => {
     setIsRunning(true);
-    setSimResult(null);
-    setExecutionStep(1); // Agent 1 storing
+    setExecutionStep(1); // Agent 1 Writing
+
+    setTimeout(() => {
+      setExecutionStep(2); // Ingested & Embedded in Postgres
+    }, 800);
+
+    setTimeout(() => {
+      setExecutionStep(3); // Agent 2 Querying
+    }, 1600);
 
     try {
-      setTimeout(async () => {
-        setExecutionStep(2); // In database
+      const result = await runMultiAgentSimulation({
+        agentA: agent1Name,
+        agentB: agent2Name,
+        observation: {
+          title: agent1Title,
+          content: agent1Content,
+          tags: scenario.ruleTags
+        },
+        query: agent2Query
+      });
 
-        setTimeout(async () => {
-          setExecutionStep(3); // Agent 2 querying
-
-          const res = await runMultiAgentSimulation({
-            decisionTitle: agent1Title,
-            decisionContent: agent1Content,
-            query: agent2Query,
-          });
-
-          setSimResult(res);
-          setExecutionStep(4); // Finished
-          setIsRunning(false);
-        }, 800);
-      }, 700);
-    } catch {
+      setTimeout(() => {
+        setExecutionStep(4); // Fully Verified
+        setSimResult(result);
+        setIsRunning(false);
+      }, 2400);
+    } catch (err) {
+      console.error("Collab run failed:", err);
       setIsRunning(false);
       setExecutionStep(0);
     }
@@ -97,8 +102,8 @@ export function MultiAgentCollabSection() {
       <div className="dash-sec-header">
         <div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
-            <span className="dash-badge dash-badge-yellow">🧪 Live Proof Harness</span>
-            <span className="dash-badge dash-badge-green">100% Real Neural AI Embeddings</span>
+            <span className="dash-badge dash-badge-yellow">Live Proof Harness</span>
+            <span className="dash-badge dash-badge-green">Google Gemini MRL Embeddings (768d)</span>
           </div>
           <h1>Multi-Agent Collaboration Lab</h1>
           <p>
@@ -112,7 +117,7 @@ export function MultiAgentCollabSection() {
             disabled={isRunning}
             style={{ minWidth: "220px", justifyContent: "center" }}
           >
-            {isRunning ? "⏳ Executing Live Collab..." : "⚡ Run Live Cross-Agent Test"}
+            {isRunning ? "Executing Live Collab..." : "Run Live Cross-Agent Test"}
           </button>
         </div>
       </div>
@@ -141,7 +146,7 @@ export function MultiAgentCollabSection() {
         <div className="dash-box" style={{ border: executionStep >= 2 ? "2px solid #118a4b" : "1.5px solid var(--ink)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "20px" }}>🤖</span>
+              <span className="dash-badge dash-badge-dark" style={{ fontWeight: 800 }}>A1</span>
               <div>
                 <strong style={{ fontSize: "15px" }}>Agent 1 (Decision Creator)</strong>
                 <div style={{ fontSize: "12px", color: "#666" }}>Runs in Developer Terminal</div>
@@ -150,54 +155,56 @@ export function MultiAgentCollabSection() {
             <span className="dash-badge dash-badge-dark">{agent1Name}</span>
           </div>
 
-          <div style={{ marginBottom: "12px" }}>
+          <div style={{ marginBottom: "10px" }}>
             <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "4px" }}>
-              Architectural Decision Title
+              Rule Title / Context Summary
             </label>
             <input
               type="text"
               className="dash-input"
               value={agent1Title}
               onChange={(e) => setAgent1Title(e.target.value)}
-              style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #ccc" }}
+              style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #ccc", fontSize: "13px" }}
             />
           </div>
 
           <div style={{ marginBottom: "12px" }}>
             <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "4px" }}>
-              Decision / Pattern Content
+              Architectural Decision Body (Markdown)
             </label>
             <textarea
               className="dash-textarea"
-              rows={3}
+              rows={4}
               value={agent1Content}
               onChange={(e) => setAgent1Content(e.target.value)}
               style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #ccc", fontSize: "13px" }}
             />
           </div>
 
-          <div style={{ background: "#f8fafc", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px" }}>
-            <div style={{ color: "#475569", fontWeight: "bold" }}>Tool Action:</div>
-            <code style={{ color: "#0f766e" }}>store_observation(&#123; title, content, tags &#125;)</code>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", color: "#666", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+            <span>Tool Invocation: <code>store_observation</code></span>
+            {executionStep >= 2 && (
+              <span className="dash-badge dash-badge-green">Vectorized (768d)</span>
+            )}
           </div>
         </div>
 
-        {/* CENTER FLOW ARROW */}
-        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+        {/* PIPELINE ARROW */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
           <div style={{
             width: "44px",
             height: "44px",
             borderRadius: "50%",
-            background: executionStep >= 2 ? "#118a4b" : "#141414",
+            background: executionStep >= 2 ? "#118a4b" : "#e0e0e0",
             color: "#fff",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "18px",
+            fontSize: "12px",
             fontWeight: "bold",
             transition: "all 0.3s"
           }}>
-            🧠
+            VEC
           </div>
           <span style={{ fontSize: "11px", fontWeight: "bold", color: "#666" }}>pgvector</span>
         </div>
@@ -206,7 +213,7 @@ export function MultiAgentCollabSection() {
         <div className="dash-box" style={{ border: executionStep >= 4 ? "2px solid #118a4b" : "1.5px solid var(--ink)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "20px" }}>⚡</span>
+              <span className="dash-badge dash-badge-yellow" style={{ fontWeight: 800 }}>A2</span>
               <div>
                 <strong style={{ fontSize: "15px" }}>Agent 2 (Context Consumer)</strong>
                 <div style={{ fontSize: "12px", color: "#666" }}>Runs in IDE / Laptop 2</div>
@@ -228,39 +235,31 @@ export function MultiAgentCollabSection() {
             />
           </div>
 
-          <div style={{ marginBottom: "12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "bold" }}>
-              <span>Similarity Threshold: {threshold}</span>
-              <span style={{ color: "#666" }}>Cosine Distance</span>
-            </div>
-            <input
-              type="range"
-              min="0.10"
-              max="0.80"
-              step="0.05"
-              value={threshold}
-              onChange={(e) => setThreshold(parseFloat(e.target.value))}
-              style={{ width: "100%", marginTop: "6px" }}
-            />
+          <div style={{ height: "42px", display: "flex", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", color: "#666" }}>
+              Notice: Agent 2 has zero local chat history or prior prompt tokens.
+            </span>
           </div>
 
-          <div style={{ background: "#f8fafc", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px" }}>
-            <div style={{ color: "#475569", fontWeight: "bold" }}>Tool Action:</div>
-            <code style={{ color: "#2563eb" }}>recall_context(&#123; query, threshold &#125;)</code>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", color: "#666", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+            <span>Tool Invocation: <code>recall_context</code></span>
+            {executionStep >= 4 && (
+              <span className="dash-badge dash-badge-green">Context Injected</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* VERIFIABLE EXECUTION TIMELINE */}
+      {/* LIVE INTERACTIVE EXECUTION PIPELINE */}
       <div className="dash-box" style={{ marginTop: "24px" }}>
-        <div className="dash-box-header">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h3>Live Verification Timeline</h3>
-            <p className="dash-sub">Real-time trace of cross-agent communication through ExtenGen database</p>
+            <h3>Live Execution & Proof Verifier</h3>
+            <p className="dash-sub">Shows step-by-step vector search, cosine distance match, and prompt injection</p>
           </div>
           {executionStep === 4 && (
             <span className="dash-badge dash-badge-green" style={{ fontSize: "13px", padding: "6px 12px" }}>
-              ✓ PROOF VERIFIED: Match Score {((simResult?.agentB?.topMatch?.similarity || 0.42) * 100).toFixed(1)}%
+              PROOF VERIFIED: Match Score {((simResult?.agentB?.topMatch?.similarity || 0.42) * 100).toFixed(1)}%
             </span>
           )}
         </div>
@@ -276,11 +275,13 @@ export function MultiAgentCollabSection() {
             alignItems: "center",
             gap: "14px"
           }}>
-            <div style={{ fontSize: "18px" }}>{executionStep >= 2 ? "✅" : executionStep === 1 ? "⏳" : "⚪"}</div>
+            <div className="dash-badge dash-badge-dark" style={{ width: "24px", height: "24px", display: "grid", placeItems: "center", borderRadius: "50%", padding: 0 }}>
+              {executionStep >= 2 ? "1" : executionStep === 1 ? "..." : "1"}
+            </div>
             <div style={{ flex: 1 }}>
               <strong>Step 1: Agent 1 captures & embeds decision into PostgreSQL</strong>
               <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
-                Generates 384-dimensional dense neural embedding via HuggingFace all-MiniLM-L6-v2 pipeline.
+                Generates 768-dimensional dense neural embedding via Google Gemini gemini-embedding-001 pipeline.
               </div>
             </div>
             {simResult?.agentA?.id && (
@@ -300,7 +301,9 @@ export function MultiAgentCollabSection() {
             alignItems: "center",
             gap: "14px"
           }}>
-            <div style={{ fontSize: "18px" }}>{executionStep >= 4 ? "✅" : executionStep === 3 ? "🔍" : "⚪"}</div>
+            <div className="dash-badge dash-badge-dark" style={{ width: "24px", height: "24px", display: "grid", placeItems: "center", borderRadius: "50%", padding: 0 }}>
+              {executionStep >= 4 ? "2" : executionStep === 3 ? "..." : "2"}
+            </div>
             <div style={{ flex: 1 }}>
               <strong>Step 2: Agent 2 queries ExtenGen with zero prior knowledge</strong>
               <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
@@ -319,7 +322,7 @@ export function MultiAgentCollabSection() {
             <div style={{ background: "#ffffff", border: "1.5px solid #10b981", borderRadius: "12px", padding: "16px", marginTop: "6px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <strong style={{ color: "#065f46", fontSize: "14px" }}>
-                  🎉 Injected Memory Context (Delivered to Agent 2 System Prompt):
+                  Injected Memory Context (Delivered to Agent 2 System Prompt):
                 </strong>
                 <span className="dash-badge dash-badge-dark">
                   Semantic Similarity: {((simResult.agentB.topMatch.similarity || 0.42) * 100).toFixed(1)}%
@@ -333,9 +336,9 @@ export function MultiAgentCollabSection() {
                 fontSize: "12px",
                 lineHeight: "1.5",
                 whiteSpace: "pre-wrap",
-                margin: 0
+                fontFamily: "monospace"
               }}>
-                {simResult.agentB.formattedContext || simResult.agentB.topMatch.content}
+                {simResult.agentB?.formattedContext || simResult.agentB?.topMatch?.content}
               </pre>
             </div>
           )}

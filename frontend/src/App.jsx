@@ -70,7 +70,7 @@ function Nav({ onOpenDashboard }) {
           onClick={onOpenDashboard}
           style={{ cursor: "pointer", border: "none", font: "inherit" }}
         >
-          📊 Dashboard
+          Dashboard
         </button>
         <a
           className="pill white"
@@ -99,7 +99,7 @@ function Hero({ onOpenDashboard }) {
             onClick={onOpenDashboard}
             style={{ cursor: "pointer", border: "none", font: "inherit" }}
           >
-            📊 Open Dashboard
+            Open Dashboard
           </button>
           <a className="pill ghost big" href="#how">See how it works</a>
         </div>
@@ -233,7 +233,7 @@ export default function App() {
                 onClick={() => switchView("dashboard")}
                 style={{ cursor: "pointer", border: "none", font: "inherit" }}
               >
-                📊 Open Dashboard
+                Open Dashboard
               </button>
               <a
                 className="pill ghost big"

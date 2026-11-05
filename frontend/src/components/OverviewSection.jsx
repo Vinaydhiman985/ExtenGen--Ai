@@ -55,33 +55,36 @@ export function OverviewSection({ onNavigateToSection }) {
 
   const handleRunSimulation = async () => {
     setSimRunning(true);
-    setSimResult(null);
     setSimStep(1);
 
-    setTimeout(async () => {
-      setSimStep(2);
-      const res = await runMultiAgentSimulation();
-      setSimResult(res);
+    setTimeout(() => setSimStep(2), 700);
+
+    try {
+      const result = await runMultiAgentSimulation();
       setSimStep(3);
+      setSimResult(result);
+      await loadData();
+    } catch (err) {
+      console.error("Simulation error:", err);
+    } finally {
       setSimRunning(false);
-      loadData(); // Refresh DB stats
-    }, 1200);
+    }
   };
 
   return (
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-dark">📊 Real-Time Metrics</span>
+          <span className="dash-badge dash-badge-dark">System Metrics</span>
           <h1>System Overview & Shared Memory Analytics</h1>
           <p>Live visibility into memory indexing, real AI neural embeddings, active agent sessions, and collaboration.</p>
         </div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           <button className="dash-pill dash-pill-white" onClick={loadData}>
-            🔄 Refresh Metrics
+            Refresh Metrics
           </button>
           <button className="dash-pill dash-pill-dark" onClick={() => onNavigateToSection("memories")}>
-            🧠 View All Memories
+            View All Memories
           </button>
         </div>
       </div>
@@ -91,7 +94,7 @@ export function OverviewSection({ onNavigateToSection }) {
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
             <span>Total Memories (DB)</span>
-            <span>🧠</span>
+            <span className="dash-badge dash-badge-dark">DB</span>
           </div>
           <div className="dash-kpi-val">{loading ? "..." : stats.totalMemories}</div>
           <div className="dash-kpi-sub pos">
@@ -102,7 +105,7 @@ export function OverviewSection({ onNavigateToSection }) {
         <div className="dash-kpi-card highlight">
           <div className="dash-kpi-top">
             <span>Active MCP Agents</span>
-            <span>🤖</span>
+            <span className="dash-badge dash-badge-green">MCP</span>
           </div>
           <div className="dash-kpi-val" style={{ color: activeAgents.count > 0 ? "#118a4b" : "#141414" }}>
             {loading ? "..." : activeAgents.count}
@@ -119,7 +122,7 @@ export function OverviewSection({ onNavigateToSection }) {
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
             <span>Indexed Vectors</span>
-            <span>⚡</span>
+            <span className="dash-badge dash-badge-dark">VEC</span>
           </div>
           <div className="dash-kpi-val">{loading ? "..." : stats.indexedCount || stats.totalMemories}</div>
           <div className="dash-kpi-sub pos">
@@ -130,20 +133,20 @@ export function OverviewSection({ onNavigateToSection }) {
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
             <span>AI Embedding Engine</span>
-            <span>🧠</span>
+            <span className="dash-badge dash-badge-dark">MRL</span>
           </div>
           <div className="dash-kpi-val" style={{ fontSize: "20px", marginTop: "4px" }}>
-            HuggingFace
+            Google Gemini
           </div>
           <div className="dash-kpi-sub pos">
-            <span>all-MiniLM-L6-v2</span> (Real Neural AI)
+            <span>gemini-embedding-001</span> (768d)
           </div>
         </div>
 
         <div className="dash-kpi-card">
           <div className="dash-kpi-top">
             <span>Tenant Isolation</span>
-            <span>🛡️</span>
+            <span className="dash-badge dash-badge-green">SEC</span>
           </div>
           <div className="dash-kpi-val" style={{ fontSize: "22px", marginTop: "4px" }}>
             RLS Active
@@ -159,12 +162,12 @@ export function OverviewSection({ onNavigateToSection }) {
         <div className="dash-box-header" style={{ alignItems: "flex-start" }}>
           <div>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <span className="dash-badge dash-badge-yellow">🧪 Live Proof Widget</span>
-              <span className="dash-badge dash-badge-green">100% Real API</span>
+              <span className="dash-badge dash-badge-yellow">Interactive Demonstration</span>
+              <span className="dash-badge dash-badge-green">Live API</span>
             </div>
             <h3 style={{ margin: "8px 0 4px", fontSize: "20px" }}>Cross-Agent Memory Sharing Test</h3>
             <p className="dash-sub">
-              Prove in real time that <strong>Agent A (Claude Code CLI)</strong> writes an architectural standard, and <strong>Agent B (Cursor IDE)</strong> immediately recalls it via semantic search.
+              Demonstrate that <strong>Agent A (Claude Code CLI)</strong> writes an architectural standard, and <strong>Agent B (Cursor IDE)</strong> immediately recalls it via semantic search.
             </p>
           </div>
           <button
@@ -173,7 +176,7 @@ export function OverviewSection({ onNavigateToSection }) {
             disabled={simRunning}
             style={{ minWidth: "190px", justifyContent: "center" }}
           >
-            {simRunning ? "⏳ Testing in Progress..." : "▶️ Run Multi-Agent Collab Test"}
+            {simRunning ? "Testing in Progress..." : "Run Multi-Agent Collab Test"}
           </button>
         </div>
 
@@ -182,8 +185,8 @@ export function OverviewSection({ onNavigateToSection }) {
           {/* AGENT A CARD */}
           <div style={{ background: "#ffffff", border: simStep >= 1 ? "1.5px solid #118a4b" : "1px solid #e0e0e0", borderRadius: "12px", padding: "16px", transition: "all 0.3s" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-              <strong style={{ fontSize: "14px", color: "#141414" }}>🤖 Agent A (Claude Code CLI)</strong>
-              {simStep >= 2 ? <span style={{ color: "#118a4b", fontSize: "12px", fontWeight: "bold" }}>✓ Written to DB</span> : <span style={{ color: "#888", fontSize: "12px" }}>Writer</span>}
+              <strong style={{ fontSize: "14px", color: "#141414" }}>Agent A (Claude Code CLI)</strong>
+              {simStep >= 2 ? <span style={{ color: "#118a4b", fontSize: "12px", fontWeight: "bold" }}>Written to DB</span> : <span style={{ color: "#888", fontSize: "12px" }}>Writer</span>}
             </div>
             <p style={{ fontSize: "13px", color: "#444", margin: "0 0 8px", background: "#f8f8f8", padding: "8px 10px", borderRadius: "6px", fontFamily: "monospace" }}>
               Rule: "All Stripe refund requests must pass idempotency_key with 24h Redis TTL."
@@ -192,15 +195,15 @@ export function OverviewSection({ onNavigateToSection }) {
           </div>
 
           {/* ARROW ICON */}
-          <div style={{ textAlign: "center", color: simStep >= 2 ? "#118a4b" : "#bbb", fontSize: "24px", fontWeight: "bold" }}>
-            ➔ 🧠 ➔
+          <div style={{ textAlign: "center", color: simStep >= 2 ? "#118a4b" : "#bbb", fontSize: "14px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>
+            Shared Memory Pipeline
           </div>
 
           {/* AGENT B CARD */}
           <div style={{ background: "#ffffff", border: simStep >= 3 ? "1.5px solid #118a4b" : "1px solid #e0e0e0", borderRadius: "12px", padding: "16px", transition: "all 0.3s" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-              <strong style={{ fontSize: "14px", color: "#141414" }}>⚡ Agent B (Cursor IDE)</strong>
-              {simStep >= 3 ? <span style={{ color: "#118a4b", fontSize: "12px", fontWeight: "bold" }}>✓ Context Recalled</span> : <span style={{ color: "#888", fontSize: "12px" }}>Reader</span>}
+              <strong style={{ fontSize: "14px", color: "#141414" }}>Agent B (Cursor IDE)</strong>
+              {simStep >= 3 ? <span style={{ color: "#118a4b", fontSize: "12px", fontWeight: "bold" }}>Context Recalled</span> : <span style={{ color: "#888", fontSize: "12px" }}>Reader</span>}
             </div>
             <p style={{ fontSize: "13px", color: "#444", margin: "0 0 8px", background: "#f8f8f8", padding: "8px 10px", borderRadius: "6px", fontFamily: "monospace" }}>
               Query: "How to prevent duplicate payments during refund?"
@@ -214,7 +217,7 @@ export function OverviewSection({ onNavigateToSection }) {
           <div style={{ background: "#ecfdf5", border: "1.5px solid #10b981", borderRadius: "12px", padding: "16px", marginTop: "14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <strong style={{ color: "#065f46", fontSize: "15px" }}>
-                🎉 Success: Agent B retrieved Agent A's memory with zero prior session knowledge!
+                Success: Agent B retrieved Agent A's memory with zero prior session knowledge!
               </strong>
               <span className="dash-badge dash-badge-green" style={{ background: "#10b981", color: "#ffffff" }}>
                 Match Score: {(simResult.agentB?.topMatch?.similarity * 100 || 88).toFixed(1)}%
@@ -234,13 +237,13 @@ export function OverviewSection({ onNavigateToSection }) {
       <div className="dash-box">
         <div className="dash-box-header">
           <div>
-            <h3>Real Live Memories Audit Feed</h3>
+            <h3>Recent Observations Audit Feed</h3>
             <p className="dash-sub" style={{ marginTop: "4px" }}>
               Live stream of real observations stored in PostgreSQL / Memory layer
             </p>
           </div>
           <button className="dash-pill dash-pill-white dash-pill-sm" onClick={() => onNavigateToSection("memories")}>
-            Manage All →
+            Manage All
           </button>
         </div>
 
@@ -248,8 +251,8 @@ export function OverviewSection({ onNavigateToSection }) {
           {stats.recentMemories && stats.recentMemories.length > 0 ? (
             stats.recentMemories.map((obs) => (
               <div key={obs.id} className="dash-feed-item">
-                <div className="dash-feed-icon recall">
-                  📥
+                <div className="dash-feed-icon recall" style={{ fontSize: "11px", fontWeight: 700 }}>
+                  OBS
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -264,7 +267,7 @@ export function OverviewSection({ onNavigateToSection }) {
                   <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "8px", flexWrap: "wrap" }}>
                     <span className="dash-badge dash-badge-dark">{obs.source || "agent_session"}</span>
                     {obs.status === "indexed" && (
-                      <span className="dash-badge dash-badge-green">✓ Indexed</span>
+                      <span className="dash-badge dash-badge-green">Indexed</span>
                     )}
                     <span style={{ fontSize: "12px", color: "#888", fontFamily: "monospace" }}>
                       ID: {obs.id.slice(0, 8)}...
