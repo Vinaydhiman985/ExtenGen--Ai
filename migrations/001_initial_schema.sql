@@ -2,6 +2,7 @@
 -- Migration: 001_initial_schema.sql
 -- Description: Core schema for ExtenGen: Multi-tenant organizations, users,
 --              api_keys, observations with pgvector embeddings, and RLS policies.
+-- Embedding model: Google text-embedding-004 → 768 dimensions
 -- =============================================================================
 
 -- 1. Enable pgvector extension
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 );
 
 -- 5. Observations Table (Persistent Shared Memory)
+--    embedding vector(768) — Google text-embedding-004 (768 dimensions)
 CREATE TABLE IF NOT EXISTS observations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -51,7 +53,7 @@ CREATE TABLE IF NOT EXISTS observations (
     title VARCHAR(255),
     content TEXT NOT NULL,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    embedding vector(1536),
+    embedding vector(768),
     status VARCHAR(32) NOT NULL DEFAULT 'pending_embedding', -- 'pending_embedding', 'indexed', 'failed'
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -132,8 +134,9 @@ CREATE POLICY organizations_tenant_isolation ON organizations
     );
 
 -- 8. Vector Cosine Similarity Search RPC Function
+--    Uses vector(768) — Google text-embedding-004
 CREATE OR REPLACE FUNCTION match_observations(
-    query_embedding vector(1536),
+    query_embedding vector(768),
     match_threshold float DEFAULT 0.60,
     match_count int DEFAULT 5,
     filter_sources text[] DEFAULT NULL,

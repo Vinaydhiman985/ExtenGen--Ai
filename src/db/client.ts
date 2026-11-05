@@ -11,12 +11,23 @@ let pool: pg.Pool | null = null;
 export function getDbPool(): pg.Pool | null {
   if (pool) return pool;
 
-  if (env.DATABASE_URL) {
+  if (env.DATABASE_URL || env.PGHOST) {
     pool = new Pool({
-      connectionString: env.DATABASE_URL,
-      ssl: env.DATABASE_URL.includes('supabase') || env.NODE_ENV === 'production' 
-        ? { rejectUnauthorized: false } 
-        : undefined,
+      ...(env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : {}),
+      ...(env.PGHOST ? {
+        host: env.PGHOST,
+        port: env.PGPORT,
+        database: env.PGDATABASE,
+        user: env.PGUSER,
+        password: env.PGPASSWORD,
+      } : {}),
+      ssl: env.PGSSLMODE === 'disable'
+        ? false
+        : (env.PGSSLMODE === 'require'
+          || env.DATABASE_URL?.includes('supabase')
+          || env.NODE_ENV === 'production')
+          ? { rejectUnauthorized: false }
+          : undefined,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
@@ -58,14 +69,14 @@ export async function withTenantContext<T>(
     await client.query('BEGIN');
 
     if (context.bypassRls) {
-      await client.query("SET LOCAL app.bypass_rls = 'true'");
+      await client.query("SELECT set_config('app.bypass_rls', 'true', true)");
     } else {
-      await client.query("SET LOCAL app.bypass_rls = 'false'");
+      await client.query("SELECT set_config('app.bypass_rls', 'false', true)");
       if (context.orgId) {
-        await client.query('SET LOCAL app.current_org_id = $1', [context.orgId]);
+        await client.query("SELECT set_config('app.current_org_id', $1, true)", [context.orgId]);
       }
       if (context.userId) {
-        await client.query('SET LOCAL app.current_user_id = $1', [context.userId]);
+        await client.query("SELECT set_config('app.current_user_id', $1, true)", [context.userId]);
       }
     }
 
