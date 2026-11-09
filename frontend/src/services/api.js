@@ -541,23 +541,29 @@ export async function simulateAgentConnection(action = "connect", agentName = "C
  * 2. Agent B queries recall with related question
  * 3. Returns the exact proof details
  */
-export async function runMultiAgentSimulation({
-  decisionTitle = "Stripe Webhook Idempotency Standard",
-  decisionContent = "All webhook handlers must verify stripe-signature header and persist idempotency_key with 24h Redis TTL before dispatching business events.",
-  query = "How to handle Stripe webhook signature and duplicate payments?"
-} = {}) {
+export async function runMultiAgentSimulation(options = {}) {
+  const title = options.title || options.decisionTitle || options.observation?.title || "Custom Architecture Standard";
+  const content = options.content || options.decisionContent || options.observation?.content || "";
+  const query = options.query || "";
+  const agentA = options.agentA || "Agent A (Developer / CLI)";
+  const agentB = options.agentB || "Agent B (Assistant / IDE)";
+  const tags = options.tags || options.observation?.tags || ["architecture"];
+
   try {
     // Step 1: Agent A stores
     const storeRes = await fetch("/api/v1/observations", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${_currentOrg.id}`,
+      },
       body: JSON.stringify({
-        title: decisionTitle,
-        content: decisionContent,
+        title,
+        content,
         source: "agent_session",
-        tags: ["architecture", "stripe", "webhooks"],
+        tags,
         metadata: {
-          agent_name: "Claude Code CLI",
+          agent_name: agentA,
           session_id: `agent_a_${Date.now()}`
         },
         immediateEmbed: true,
@@ -570,31 +576,38 @@ export async function runMultiAgentSimulation({
     // Step 2: Agent B recalls
     const recallRes = await fetch("/api/v1/context/recall", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${_currentOrg.id}`,
+      },
       body: JSON.stringify({
         query,
         limit: 3,
-        similarity_threshold: 0.25,
+        similarityThreshold: 0.20,
       })
     });
 
     const recallData = await recallRes.json();
     if (!recallRes.ok) throw new Error(recallData.error || "Agent B recall failed");
 
+    const recallResult = recallData.result || recallData;
+    const topMatches = recallResult.observations || [];
+    const topMatch = topMatches[0] || null;
+
     return {
       ok: true,
       agentA: {
         id: storeData.observation?.id,
-        title: decisionTitle,
-        content: decisionContent,
-        author: "Agent A (Claude Code)",
+        title,
+        content,
+        author: agentA,
       },
       agentB: {
         query,
-        author: "Agent B (Cursor IDE)",
-        matchesCount: recallData.matchesCount || 0,
-        topMatch: recallData.observations?.[0] || null,
-        formattedContext: recallData.formattedContext || ""
+        author: agentB,
+        matchesCount: recallResult.matchesCount || topMatches.length,
+        topMatch,
+        formattedContext: recallResult.formattedContext || (topMatch ? `### [ExtenGen Memory #${topMatch.id.slice(0, 8)}]\n**Topic**: ${topMatch.title}\n**Content**: ${topMatch.content}` : "")
       }
     };
   } catch (err) {

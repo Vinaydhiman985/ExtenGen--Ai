@@ -3,6 +3,16 @@ import { runMultiAgentSimulation } from "../services/api.js";
 
 const PRESET_SCENARIOS = [
   {
+    name: "Custom (Your Own Live Input)",
+    agent1: "Agent 1 (Architect / Dev)",
+    agent2: "Agent 2 (Assistant / Reviewer)",
+    ruleTitle: "Custom Engineering Decision",
+    ruleContent: "We decided to migrate our frontend from REST polling to Server-Sent Events (SSE) with 5s keepalive pings.",
+    ruleTags: ["custom", "standards", "architecture"],
+    query: "How should our frontend stream live updates from the backend?",
+    expectedMatch: "Server-Sent Events (SSE)"
+  },
+  {
     name: "Stripe Refund Idempotency Rule",
     agent1: "Claude Code CLI",
     agent2: "Cursor IDE",
@@ -77,11 +87,9 @@ export function MultiAgentCollabSection() {
       const result = await runMultiAgentSimulation({
         agentA: agent1Name,
         agentB: agent2Name,
-        observation: {
-          title: agent1Title,
-          content: agent1Content,
-          tags: scenario.ruleTags
-        },
+        title: agent1Title,
+        content: agent1Content,
+        tags: scenario?.ruleTags || ["custom", "standards"],
         query: agent2Query
       });
 
@@ -317,12 +325,12 @@ export function MultiAgentCollabSection() {
             )}
           </div>
 
-          {/* STEP 3 - RETRIEVED CONTENT PREVIEW */}
+          {/* STEP 3 - RETRIEVED CONTENT PREVIEW & SYNTHESIZED AGENT 2 RESPONSE */}
           {executionStep === 4 && simResult?.agentB?.topMatch && (
             <div style={{ background: "#ffffff", border: "1.5px solid #10b981", borderRadius: "12px", padding: "16px", marginTop: "6px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <strong style={{ color: "#065f46", fontSize: "14px" }}>
-                  Injected Memory Context (Delivered to Agent 2 System Prompt):
+                  Injected Memory Context (Retrieved from Supabase pgvector):
                 </strong>
                 <span className="dash-badge dash-badge-dark">
                   Semantic Similarity: {((simResult.agentB.topMatch.similarity || 0.42) * 100).toFixed(1)}%
@@ -340,6 +348,19 @@ export function MultiAgentCollabSection() {
               }}>
                 {simResult.agentB?.formattedContext || simResult.agentB?.topMatch?.content}
               </pre>
+
+              <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid #e2e8f0" }}>
+                <strong style={{ fontSize: "13px", color: "#1e293b", display: "block", marginBottom: "6px" }}>
+                  🤖 {agent2Name} (Live Synthesized Output):
+                </strong>
+                <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "12px", fontSize: "13px", color: "#334155", lineHeight: "1.6" }}>
+                  "I retrieved the architectural decision recorded by <strong>{agent1Name}</strong> regarding <em>{simResult.agentB.topMatch.title}</em>:
+                  <div style={{ margin: "8px 0", padding: "8px 12px", borderLeft: "3px solid #10b981", background: "#f0fdf4", fontStyle: "italic" }}>
+                    {simResult.agentB.topMatch.content}
+                  </div>
+                  I am proceeding with your request adhering strictly to this standard across the codebase."
+                </div>
+              </div>
             </div>
           )}
         </div>

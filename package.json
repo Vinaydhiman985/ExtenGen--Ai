@@ -13,6 +13,7 @@
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/scripts/seed.ts",
     "demo": "tsx src/scripts/demo.ts",
+    "chat": "tsx src/scripts/agent_chat.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
