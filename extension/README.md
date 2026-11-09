@@ -45,3 +45,4 @@ Connects **ChatGPT** and **Google Gemini** into a single shared institutional me
 4. **Watch Gemini Continue Your Work:**
    - When Gemini loads, ExtenGen automatically injects the exact context and memory from your ChatGPT session into Gemini's input box!
    - Gemini continues the conversation with full context, zero session loss, and zero token waste!
+

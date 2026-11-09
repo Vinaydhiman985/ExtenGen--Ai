@@ -14,3 +14,4 @@ async function checkBackend() {
 }
 
 document.addEventListener("DOMContentLoaded", checkBackend);
+

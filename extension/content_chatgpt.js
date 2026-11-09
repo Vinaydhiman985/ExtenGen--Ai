@@ -131,3 +131,4 @@
   // Periodic check to inject button when page loads or URL changes
   setInterval(injectHandoffButton, 1500);
 })();
+
