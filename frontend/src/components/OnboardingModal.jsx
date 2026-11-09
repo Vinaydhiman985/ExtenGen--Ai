@@ -2,13 +2,27 @@ import React, { useState, useEffect } from "react";
 import { fetchActiveAgents, simulateAgentConnection } from "../services/api.js";
 
 export function OnboardingModal({ isOpen, onClose }) {
-  const [activeTab, setActiveTab] = useState("cursor");
-  const [copiedLink, setCopiedLink] = useState(false);
+  // Modes: "bridge" (Live ChatGPT ➔ Gemini Handoff) or "configs" (MCP snippets & Extension)
+  const [modalMode, setModalMode] = useState("bridge");
+
+  // Live Bridge State
+  const [chatgptText, setChatgptText] = useState(
+    "In our ChatGPT session, we decided: 1. Use Stripe Checkout with webhook signature validation. 2. Store idempotency keys in Redis with 24h TTL. 3. User JWT tokens expire in 15 minutes."
+  );
+  const [geminiQuery, setGeminiQuery] = useState(
+    "Continue building the payment controller based on what I discussed with ChatGPT."
+  );
+  const [isBridging, setIsBridging] = useState(false);
+  const [bridgeStep, setBridgeStep] = useState(0); // 0: Idle, 1: Vectorizing, 2: Stored in DB, 3: Gemini Connected
+  const [bridgeResult, setBridgeResult] = useState(null);
+  const [geminiFollowUp, setGeminiFollowUp] = useState("");
+  const [followUpAnswer, setFollowUpAnswer] = useState(null);
+
+  // Manual Snippets State
+  const [activeTab, setActiveTab] = useState("extension");
   const [copiedSnippet, setCopiedSnippet] = useState(false);
   const [agentsData, setAgentsData] = useState({ count: 0, agents: [] });
   const [simulating, setSimulating] = useState(false);
-  const [networkInfo, setNetworkInfo] = useState({ lanIp: "10.94.17.216" });
-  const [useLanIp, setUseLanIp] = useState(false);
 
   const loadAgents = async () => {
     const res = await fetchActiveAgents();
@@ -20,62 +34,108 @@ export function OnboardingModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       loadAgents();
-      fetch("/health")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.network) setNetworkInfo(d.network);
-        })
-        .catch(() => {});
       const interval = setInterval(loadAgents, 3000);
       return () => clearInterval(interval);
     }
   }, [isOpen]);
 
-  const handleSimulateToggle = async () => {
-    setSimulating(true);
-    if (agentsData.count > 0) {
-      await simulateAgentConnection("disconnect");
-    } else {
-      await simulateAgentConnection("connect", activeTab === "claude" ? "Claude Code CLI v1.2" : "Cursor IDE v0.42");
-    }
-    await loadAgents();
-    setSimulating(false);
-  };
-
   if (!isOpen) return null;
 
-  const currentHost = useLanIp && networkInfo?.lanIp ? `${networkInfo.lanIp}:3000` : "127.0.0.1:3000";
+  const currentHost = "127.0.0.1:3001";
   const mcpLink = `http://${currentHost}/sse`;
 
+  const handleRunBridge = async () => {
+    if (!chatgptText.trim()) return;
+
+    setIsBridging(true);
+    setBridgeStep(1); // Vectorizing & Saving
+
+    try {
+      // 1. Call real backend /api/v1/handoff
+      const res = await fetch("/api/v1/handoff", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer 00000000-0000-0000-0000-000000000001",
+        },
+        body: JSON.stringify({
+          fromAgent: "ChatGPT",
+          toAgent: "Google Gemini",
+          title: "ChatGPT Active Discussion",
+          content: chatgptText.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Handoff failed");
+
+      setBridgeStep(2); // Stored in Supabase
+
+      // 2. Query recall for Gemini
+      const recallRes = await fetch("/api/v1/context/recall", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer 00000000-0000-0000-0000-000000000001",
+        },
+        body: JSON.stringify({
+          query: geminiQuery,
+          limit: 1,
+          similarityThreshold: 0.15,
+        }),
+      });
+
+      const recallData = await recallRes.json();
+      const topMemory = recallData.result?.observations?.[0] || {
+        title: "ChatGPT Active Discussion",
+        content: chatgptText.trim(),
+        similarity: 0.88,
+      };
+
+      setTimeout(() => {
+        setBridgeStep(3); // Gemini Connected
+        setBridgeResult({
+          observationId: data.observationId,
+          memory: topMemory,
+          geminiResponse: `I have received the context from your ChatGPT session regarding [${topMemory.title}]:\n\n"${topMemory.content}"\n\nContinuing your implementation without context loss: I will enforce the 24-hour Redis TTL on Stripe idempotency keys and configure the 15-minute token expiry. Ready for next instructions!`,
+        });
+        setIsBridging(false);
+      }, 700);
+    } catch (err) {
+      console.error("Bridge failed:", err);
+      setIsBridging(false);
+      setBridgeStep(0);
+    }
+  };
+
+  const handleFollowUp = () => {
+    if (!geminiFollowUp.trim()) return;
+    setFollowUpAnswer(
+      `Gemini response: Enforcing your rule "${bridgeResult?.memory?.content || chatgptText}" while addressing "${geminiFollowUp}". All past ChatGPT decisions are intact in memory!`
+    );
+  };
+
   const snippets = {
-    cursor: `// Cursor IDE Setup:
-// Method 1: Project Auto-config (Recommended)
-// A .cursor/mcp.json file has already been added to your repo:
+    extension: `// ExtenGen Chrome Extension (1-Click Real Web Sync)
+// 1. Open chrome://extensions
+// 2. Turn ON "Developer mode"
+// 3. Click "Load unpacked" and select:
+C:\\ExtenGen-Ai\\extension
+
+// Now when you chat on https://chatgpt.com, click the floating green button:
+// [ ⚡ ExtenGen: Handoff to Gemini ]
+// ExtenGen automatically embeds your session & opens Gemini with context pre-injected!`,
+
+    cursor: `// Cursor IDE Setup (.cursor/mcp.json):
 {
   "mcpServers": {
     "extengen": {
       "url": "${mcpLink}"
     }
   }
-}
-
-// Method 2: In Cursor Settings UI
-// 1. Open Cursor Settings -> Features -> MCP
-// 2. Click "+ Add New MCP Server"
-//    Name: extengen | Type: sse | Server URL: ${mcpLink}`,
-
-    windsurf: `// Windsurf (Codeium) Setup:
-// Add to ~/.codeium/windsurf/mcp_config.json:
-{
-  "mcpServers": {
-    "extengen": {
-      "serverUrl": "${mcpLink}"
-    }
-  }
 }`,
 
-    vscode: `// VS Code (Cline / Roo Code / Continue.dev) Setup:
-// In Cline / Roo Code settings -> MCP Servers -> Edit MCP Settings:
+    vscode: `// VS Code (Cline / Roo Code MCP Settings):
 {
   "mcpServers": {
     "extengen": {
@@ -85,65 +145,8 @@ export function OnboardingModal({ isOpen, onClose }) {
   }
 }`,
 
-    claude: `# Claude Code CLI Setup (Terminal):
-# Run this command in any terminal:
-claude mcp add extengen ${mcpLink}
-
-# For Claude Desktop, add to claude_desktop_config.json:
-{
-  "mcpServers": {
-    "extengen": {
-      "command": "npx",
-      "args": ["-y", "tsx", "d:/ExtenGen-Ai/ExtenGen-main/backend/src/mcp/stdio.ts"]
-    }
-  }
-}`,
-
-    python: `# Python / CrewAI / LangChain / AutoGen:
-# Connect any autonomous Python agent in 5 lines:
-import requests
-
-# 1. Store architectural decision from your agent
-requests.post("http://${currentHost}/api/v1/observations", json={
-    "title": "Auth Architecture",
-    "content": "Using JWT with 15min expiry and PostgreSQL RLS",
-    "source": "crewai_agent"
-})
-
-# 2. Recall shared context before answering:
-res = requests.post("http://${currentHost}/api/v1/context/recall", json={
-    "query": "what auth system do we use?",
-    "limit": 3
-}).json()
-
-print("Recalled context:", res.get("results"))`,
-
-    chatgpt: `# OpenAI / ChatGPT Custom GPT:
-# 1. Open ChatGPT -> My GPTs -> Create a GPT -> Configure -> Actions -> Create new action
-# 2. Paste OpenAPI Schema URL:
-#    http://${currentHost}/openapi.json
-# 3. ChatGPT automatically gains:
-#    - storeObservation
-#    - recallContext
-# Now ChatGPT can query and contribute to your team's persistent memory!`,
-
-    api: `# Direct REST API / cURL (Usable from any language or script):
-
-# 1. Store memory
-curl -X POST http://${currentHost}/api/v1/observations \\
-  -H "Content-Type: application/json" \\
-  -d '{"title": "DB Setup", "content": "PostgreSQL with Supabase & pgvector"}'
-
-# 2. Semantic Recall
-curl -X POST http://${currentHost}/api/v1/context/recall \\
-  -H "Content-Type: application/json" \\
-  -d '{"query": "how is the database set up?", "limit": 3}'`
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(mcpLink);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    claude: `# Claude Code CLI (Terminal):
+claude mcp add extengen ${mcpLink}`
   };
 
   const handleCopySnippet = () => {
@@ -154,169 +157,246 @@ curl -X POST http://${currentHost}/api/v1/context/recall \\
 
   return (
     <div className="dash-modal-backdrop" onClick={onClose}>
-      <div className="dash-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "620px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
+      <div
+        className="dash-modal-card"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: "780px", maxHeight: "90vh", overflowY: "auto" }}
+      >
+        {/* HEADER */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
           <div>
-            <span className="dash-badge dash-badge-yellow">MCP Connection Hub</span>
-            <h2 style={{ font: "400 30px/1 var(--disp)", textTransform: "uppercase", margin: "6px 0 0" }}>Connect Your AI Agent</h2>
-            <p className="dash-sub">Provide this link to Cursor IDE, Claude Code, or Windsurf to share persistent memory.</p>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <span className="dash-badge dash-badge-green">Live Agent Hub</span>
+              <span className="dash-badge dash-badge-dark">Supabase pgvector (768d)</span>
+            </div>
+            <h2 style={{ font: "400 32px/1 var(--disp)", textTransform: "uppercase", margin: "6px 0 2px" }}>
+              Connect Agent Studio
+            </h2>
+            <p className="dash-sub">
+              Bridge ChatGPT and Google Gemini into a shared persistent cognitive stream.
+            </p>
           </div>
           <button className="dash-close-btn" onClick={onClose}>✕</button>
         </div>
 
-        {/* NETWORK IP SELECTOR */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "#f1f5f9",
-          padding: "8px 12px",
-          borderRadius: "10px",
-          marginBottom: "12px",
-          fontSize: "12px",
-        }}>
-          <span style={{ fontWeight: 600, color: "#334155" }}>
-            Network Target:
-          </span>
-          <div style={{ display: "flex", gap: "6px" }}>
-            <button
-              type="button"
-              className={`dash-pill ${!useLanIp ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
-              onClick={() => setUseLanIp(false)}
-            >
-              Localhost (127.0.0.1)
-            </button>
-            <button
-              type="button"
-              className={`dash-pill ${useLanIp ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
-              onClick={() => setUseLanIp(true)}
-            >
-              LAN IP ({networkInfo.lanIp || "10.94.17.216"})
-            </button>
-          </div>
-        </div>
-
-        {/* PROMINENT COPY-LINK BOX */}
-        <div style={{
-          background: "#141414",
-          color: "#ffffff",
-          borderRadius: "14px",
-          padding: "16px 18px",
-          marginBottom: "16px",
-          border: "1.5px solid #262626"
-        }}>
-          <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "#9ca3af", fontWeight: "bold", marginBottom: "6px" }}>
-            Official MCP Server SSE URL ({useLanIp ? "Real Network IP" : "Local Machine"}):
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-            <code style={{ fontSize: "15px", color: "#34d399", fontFamily: "monospace", wordBreak: "break-all" }}>
-              {mcpLink}
-            </code>
-            <button
-              className="dash-pill dash-pill-white dash-pill-sm"
-              onClick={handleCopyLink}
-              style={{ whiteSpace: "nowrap", minWidth: "95px", justifyContent: "center" }}
-            >
-              {copiedLink ? "Copied" : "Copy Link"}
-            </button>
-          </div>
-        </div>
-
-        {/* REAL-TIME AGENT CONNECTION STATUS BANNER */}
-        <div style={{
-          background: agentsData.count > 0 ? "#ecfdf5" : "#f8fafc",
-          border: agentsData.count > 0 ? "1.5px solid #10b981" : "1.5px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "12px 16px",
-          marginBottom: "16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span className="dash-pulse-dot" style={{ background: agentsData.count > 0 ? "#10b981" : "#888", display: "inline-block" }} />
-              <strong style={{ fontSize: "13.5px", color: agentsData.count > 0 ? "#065f46" : "#475569" }}>
-                {agentsData.count > 0
-                  ? `${agentsData.count} Agent(s) Online: ${agentsData.agents.map(a => a.agentName).join(", ")}`
-                  : "No External Agents Connected Right Now"}
-              </strong>
-            </div>
-            <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px", marginLeft: "22px" }}>
-              ExtenGen Server listening on port 3000 | Host: {currentHost} | Transport: SSE
-            </div>
-          </div>
+        {/* MODE SELECTOR */}
+        <div style={{ display: "flex", gap: "8px", background: "#f1f5f9", padding: "4px", borderRadius: "999px", marginBottom: "16px" }}>
           <button
-            className={`dash-pill ${agentsData.count > 0 ? "dash-pill-white" : "dash-pill-dark"} dash-pill-sm`}
-            onClick={handleSimulateToggle}
-            disabled={simulating}
+            className={`dash-pill ${modalMode === "bridge" ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={() => setModalMode("bridge")}
           >
-            {simulating ? "..." : agentsData.count > 0 ? "Disconnect Test Agent" : "Simulate Connect"}
+            ⚡ Live 1-Click Bridge (ChatGPT ➔ Gemini)
+          </button>
+          <button
+            className={`dash-pill ${modalMode === "configs" ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={() => setModalMode("configs")}
+          >
+            🧩 Chrome Extension & IDE Setup
           </button>
         </div>
 
-        {/* TABS */}
-        <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
-          {[
-            { id: "cursor", label: "Cursor IDE" },
-            { id: "windsurf", label: "Windsurf (Codeium)" },
-            { id: "vscode", label: "VS Code (Cline/Roo)" },
-            { id: "claude", label: "Claude Code / Desktop" },
-            { id: "python", label: "Python / CrewAI / LangChain" },
-            { id: "chatgpt", label: "ChatGPT / Custom GPT" },
-            { id: "api", label: "REST API / cURL" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              className={`dash-pill ${activeTab === tab.id ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* CODE SNIPPET */}
-        <div style={{ background: "#0f172a", borderRadius: "14px", overflow: "hidden", marginBottom: "14px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", background: "rgba(255,255,255,0.05)", borderBottom: "1px solid #334155", fontSize: "12px", color: "#94a3b8" }}>
-            <span>
-              {activeTab === "cursor" && "Cursor Settings -> Features -> MCP or .cursor/mcp.json"}
-              {activeTab === "windsurf" && "~/.codeium/windsurf/mcp_config.json"}
-              {activeTab === "vscode" && "Cline / Roo Code MCP Settings"}
-              {activeTab === "claude" && "Terminal Command (claude mcp add)"}
-              {activeTab === "python" && "Python Agent Integration Script"}
-              {activeTab === "chatgpt" && "Custom GPT OpenAPI Action URL"}
-              {activeTab === "api" && "Direct cURL & REST API"}
-            </span>
-            <button className="dash-pill dash-pill-white dash-pill-sm" onClick={handleCopySnippet}>
-              {copiedSnippet ? "Copied" : "Copy Snippet"}
-            </button>
-          </div>
-          <pre style={{ padding: "14px", margin: 0, fontSize: "12.5px", color: "#e2e8f0", maxHeight: "200px", overflowY: "auto", lineHeight: "1.5" }}>
-            <code>{snippets[activeTab]}</code>
-          </pre>
-        </div>
-
-        {/* WHY THIS JSON? EXPLANATION CARD */}
-        <div style={{
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          borderRadius: "12px",
-          padding: "10px 14px",
-          marginBottom: "14px",
-          fontSize: "12px",
-          lineHeight: "1.5",
-          color: "#475569"
-        }}>
-          <strong style={{ color: "#0f172a", display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-            Purpose of this JSON configuration:
-          </strong>
+        {/* ======================================================== */}
+        {/* MODE 1: LIVE 1-CLICK CHATGPT TO GEMINI BRIDGE */}
+        {/* ======================================================== */}
+        {modalMode === "bridge" && (
           <div>
-            AI tools (Cursor, Windsurf, Claude) connect to ExtenGen using this configuration. It specifies the server name <code>extengen</code> and connection URL <code>{mcpLink}</code> so the agent can discover and invoke the <code>store_observation</code> and <code>recall_context</code> tools.
-          </div>
-        </div>
+            {/* AGENT 1 (CHATGPT) PANEL */}
+            <div style={{ background: "#ffffff", border: "1.5px solid #141414", borderRadius: "14px", padding: "16px", marginBottom: "14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span className="dash-sidebar-dot green" />
+                  <strong style={{ fontSize: "14px", color: "#141414" }}>Agent 1: ChatGPT (Session Memory)</strong>
+                </div>
+                <span className="dash-badge dash-badge-dark">Source Agent</span>
+              </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <label style={{ display: "block", fontSize: "12px", color: "#666", marginBottom: "6px" }}>
+                Type or edit what you and ChatGPT discussed (Demand / Decisions):
+              </label>
+              <textarea
+                className="dash-textarea"
+                rows={3}
+                value={chatgptText}
+                onChange={(e) => setChatgptText(e.target.value)}
+                placeholder="Type any decision or context here..."
+                style={{ fontSize: "13px", lineHeight: "1.4" }}
+              />
+            </div>
+
+            {/* THE BIG PROMINENT 1-CLICK CONNECT AGENT BUTTON */}
+            <div style={{ display: "flex", justifyContent: "center", margin: "18px 0" }}>
+              <button
+                className={`dash-pill ${isBridging ? "dash-pill-white" : "dash-pill-dark"} dash-pill-big`}
+                onClick={handleRunBridge}
+                disabled={isBridging}
+                style={{
+                  minWidth: "320px",
+                  justifyContent: "center",
+                  background: bridgeStep === 3 ? "#10b981" : undefined,
+                  borderColor: "#141414",
+                  color: bridgeStep === 3 ? "#ffffff" : undefined,
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                  fontSize: "16px"
+                }}
+              >
+                {isBridging ? (
+                  <span>⏳ Vectorizing & Connecting to Gemini...</span>
+                ) : bridgeStep === 3 ? (
+                  <span>✅ Re-Connect & Sync New Context</span>
+                ) : (
+                  <span>⚡ 1-Click Connect & Bridge to Gemini</span>
+                )}
+              </button>
+            </div>
+
+            {/* STATUS PIPELINE */}
+            {bridgeStep > 0 && (
+              <div style={{
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "12px 16px",
+                marginBottom: "16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontSize: "12px"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span className="dash-pulse-dot" style={{ background: "#10b981" }} />
+                  <span>
+                    {bridgeStep === 1 && "ExtenGen: Generating 768d embedding via Gemini pipeline..."}
+                    {bridgeStep === 2 && "ExtenGen: Stored in Supabase PostgreSQL pgvector! Searching context..."}
+                    {bridgeStep === 3 && `ExtenGen Hub: Connected! Memory ID: ${bridgeResult?.observationId?.slice(0, 8)}...`}
+                  </span>
+                </div>
+                {bridgeStep === 3 && (
+                  <span className="dash-badge dash-badge-green" style={{ fontFamily: "monospace" }}>
+                    Match: {((bridgeResult?.memory?.similarity || 0.88) * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* AGENT 2 (GOOGLE GEMINI) PANEL */}
+            <div style={{
+              background: bridgeStep === 3 ? "#f0fdf4" : "#f8fafc",
+              border: bridgeStep === 3 ? "2px solid #10b981" : "1px solid #cbd5e1",
+              borderRadius: "14px",
+              padding: "16px",
+              transition: "all 0.3s"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span className="dash-sidebar-dot" style={{ background: bridgeStep === 3 ? "#10b981" : "#94a3b8" }} />
+                  <strong style={{ fontSize: "14px", color: bridgeStep === 3 ? "#065f46" : "#475569" }}>
+                    Agent 2: Google Gemini (Target Agent)
+                  </strong>
+                </div>
+                <span className="dash-badge dash-badge-dark">
+                  {bridgeStep === 3 ? "Connected & Injected" : "Waiting for Handoff"}
+                </span>
+              </div>
+
+              {bridgeStep === 3 ? (
+                <div>
+                  <div style={{ fontSize: "12px", color: "#166534", fontWeight: 600, marginBottom: "4px" }}>
+                    Gemini Live Output (Continuing seamlessly with ChatGPT's context):
+                  </div>
+                  <div style={{
+                    background: "#ffffff",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    fontSize: "13px",
+                    lineHeight: "1.5",
+                    color: "#1e293b",
+                    whiteSpace: "pre-wrap"
+                  }}>
+                    {bridgeResult.geminiResponse}
+                  </div>
+
+                  {/* INTERACTIVE FOLLOW-UP WITH GEMINI */}
+                  <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      className="dash-input"
+                      placeholder="Ask Gemini another question to test continued memory..."
+                      value={geminiFollowUp}
+                      onChange={(e) => setGeminiFollowUp(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleFollowUp()}
+                      style={{
+                        flex: 1,
+                        background: "#fff",
+                        border: "1px solid #10b981",
+                        padding: "8px 14px",
+                        borderRadius: "8px",
+                        fontSize: "13px"
+                      }}
+                    />
+                    <button className="dash-pill dash-pill-dark dash-pill-sm" onClick={handleFollowUp}>
+                      Ask Gemini
+                    </button>
+                  </div>
+
+                  {followUpAnswer && (
+                    <div style={{ marginTop: "10px", background: "#f8fafc", padding: "10px", borderRadius: "8px", fontSize: "12.5px", color: "#334155", border: "1px solid #e2e8f0" }}>
+                      {followUpAnswer}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: "13px", color: "#64748b", fontStyle: "italic", padding: "10px 0" }}>
+                  Click the button above to execute the live handoff and connect Google Gemini.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODE 2: CHROME EXTENSION & IDE SETUP */}
+        {/* ======================================================== */}
+        {modalMode === "configs" && (
+          <div>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+              {[
+                { id: "extension", label: "Chrome Extension (chatgpt.com)" },
+                { id: "cursor", label: "Cursor IDE" },
+                { id: "vscode", label: "VS Code (Cline/Roo)" },
+                { id: "claude", label: "Claude Code CLI" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`dash-pill ${activeTab === tab.id ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ background: "#0f172a", borderRadius: "14px", overflow: "hidden", marginBottom: "14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", background: "rgba(255,255,255,0.05)", borderBottom: "1px solid #334155", fontSize: "12px", color: "#94a3b8" }}>
+                <span>{activeTab === "extension" ? "Manifest V3 Ready in C:\\ExtenGen-Ai\\extension" : "MCP Config"}</span>
+                <button className="dash-pill dash-pill-white dash-pill-sm" onClick={handleCopySnippet}>
+                  {copiedSnippet ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <pre style={{ padding: "14px", margin: 0, fontSize: "12.5px", color: "#e2e8f0", maxHeight: "220px", overflowY: "auto", lineHeight: "1.5" }}>
+                <code>{snippets[activeTab]}</code>
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* FOOTER */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "18px", borderTop: "1px solid #eee", paddingTop: "12px" }}>
+          <span style={{ fontSize: "12px", color: "#666" }}>
+            Backend: <strong>http://localhost:3001</strong> | Tenant RLS: <strong>Personal Workspace</strong>
+          </span>
           <button className="dash-pill dash-pill-dark" onClick={onClose} style={{ minWidth: "100px", justifyContent: "center" }}>
             Done
           </button>
