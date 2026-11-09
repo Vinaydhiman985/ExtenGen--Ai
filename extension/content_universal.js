@@ -2,6 +2,11 @@
 // Universal 6-Engine Mesh: ChatGPT, Claude, Gemini, DeepSeek, Copilot, Perplexity
 
 (function () {
+  // Only execute in top-level window, not in sandboxed iframes (e.g. runner.html)
+  if (window.top !== window.self) {
+    return;
+  }
+
   console.log("[ExtenGen] Universal Multi-Agent AI Bridge active.");
 
   const AI_PLATFORMS = {
