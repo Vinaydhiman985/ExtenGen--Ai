@@ -21,3 +21,4 @@ export function broadcastLiveEvent(type: LiveEventType, data: LiveEventPayload =
     timestamp: new Date().toISOString(),
   });
 }
+

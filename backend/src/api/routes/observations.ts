@@ -11,13 +11,13 @@ export const observationRoutes: FastifyPluginAsync = async (fastify) => {
     const tenant = await resolveAuthContext(authHeader);
     const body = request.body as any;
 
-    if (!body || !body.content) {
-      return reply.status(400).send({ error: 'Field "content" is required.' });
+    if (!body || !body.content || typeof body.content !== 'string' || body.content.trim().length === 0) {
+      return reply.status(400).send({ error: 'Field "content" is required and cannot be empty or whitespace.' });
     }
 
     const result = await storeObservationWithContradictionCheck(tenant, {
-      content: body.content,
-      title: body.title,
+      content: body.content.trim(),
+      title: body.title ? String(body.title).trim() : undefined,
       source: body.source || 'api',
       tags: body.tags,
       metadata: body.metadata,
