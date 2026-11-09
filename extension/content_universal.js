@@ -1,13 +1,14 @@
 // ExtenGen Universal Multi-Agent AI Bridge (Manifest V3)
-// Supported: ChatGPT, Claude, Gemini, DeepSeek, Copilot, Perplexity
+// Universal 6-Engine Mesh: ChatGPT, Claude, Gemini, DeepSeek, Copilot, Perplexity
 
 (function () {
-  console.log("[ExtenGen] Universal Multi-Agent AI Bridge initialized.");
+  console.log("[ExtenGen] Universal Multi-Agent AI Bridge active.");
 
   const AI_PLATFORMS = {
     chatgpt: {
       id: "chatgpt",
       name: "ChatGPT",
+      label: "ChatGPT (OpenAI)",
       matcher: (host) => host.includes("chatgpt.com") || host.includes("openai.com"),
       url: "https://chatgpt.com",
       color: "#10b981",
@@ -15,6 +16,7 @@
     claude: {
       id: "claude",
       name: "Claude",
+      label: "Claude (Anthropic)",
       matcher: (host) => host.includes("claude.ai"),
       url: "https://claude.ai/new",
       color: "#d97706",
@@ -22,6 +24,7 @@
     gemini: {
       id: "gemini",
       name: "Gemini",
+      label: "Google Gemini",
       matcher: (host) => host.includes("gemini.google.com"),
       url: "https://gemini.google.com/app",
       color: "#2563eb",
@@ -29,6 +32,7 @@
     deepseek: {
       id: "deepseek",
       name: "DeepSeek",
+      label: "DeepSeek Chat",
       matcher: (host) => host.includes("deepseek.com"),
       url: "https://chat.deepseek.com",
       color: "#6366f1",
@@ -36,6 +40,7 @@
     copilot: {
       id: "copilot",
       name: "Copilot",
+      label: "Microsoft Copilot",
       matcher: (host) => host.includes("copilot.microsoft.com"),
       url: "https://copilot.microsoft.com",
       color: "#0284c7",
@@ -43,6 +48,7 @@
     perplexity: {
       id: "perplexity",
       name: "Perplexity",
+      label: "Perplexity AI",
       matcher: (host) => host.includes("perplexity.ai"),
       url: "https://www.perplexity.ai",
       color: "#06b6d4",
@@ -56,12 +62,27 @@
         return AI_PLATFORMS[key];
       }
     }
-    return { id: "generic", name: "AI Agent", url: window.location.href, color: "#10b981" };
+    return { id: "generic", name: "AI Agent", label: "AI Agent", url: window.location.href, color: "#10b981" };
   }
 
   const currentPlatform = getCurrentPlatform();
 
-  // Inject styles once
+  // Clean up any legacy single-target buttons from older scripts
+  function removeLegacyElements() {
+    const legacyIds = [
+      "extengen-handoff-btn",
+      "extengen-handoff-container",
+      "extengen-chatgpt-handoff-pill",
+      "extengen-gemini-handoff-pill",
+    ];
+    legacyIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    });
+  }
+  removeLegacyElements();
+
+  // Inject CSS animations & styling
   if (!document.getElementById("extengen-universal-styles")) {
     const style = document.createElement("style");
     style.id = "extengen-universal-styles";
@@ -70,20 +91,23 @@
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
       }
-      .extengen-menu-item:hover {
-        background: #1e293b !important;
-        color: #ffffff !important;
+      #extengen-universal-container * {
+        box-sizing: border-box;
       }
-      #extengen-universal-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 14px 30px rgba(0,0,0,0.4) !important;
+      #extengen-target-select:focus {
+        border-color: #10b981 !important;
+        outline: none !important;
+      }
+      #extengen-handoff-action-btn:hover {
+        background: #059669 !important;
+        transform: translateY(-1px);
       }
     `;
     document.head.appendChild(style);
   }
 
   // ============================================================
-  // PART 1: MESSAGE SCRAPER FOR CURRENT PLATFORM
+  // PART 1: CONVERSATION SCRAPER FOR CURRENT PLATFORM
   // ============================================================
   function extractConversation() {
     let selectors = [];
@@ -122,13 +146,29 @@
   }
 
   // ============================================================
-  // PART 2: CONTEXT INJECTOR (When arriving at target platform)
+  // PART 2: CONTEXT INJECTOR (When landing on target platform)
   // ============================================================
   function showToast(message) {
     if (document.getElementById("extengen-toast-banner")) return;
 
     const banner = document.createElement("div");
     banner.id = "extengen-toast-banner";
+    banner.style.cssText = `
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 9999999;
+      background: #09090b;
+      border: 1.5px solid #10b981;
+      border-radius: 12px;
+      padding: 12px 18px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.5);
+      color: #fafafa;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      animation: extengen-slide-in 0.3s ease;
+      max-width: 420px;
+    `;
+
     banner.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -139,11 +179,11 @@
             </svg>
           </span>
           <div>
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;font-weight:700;">ExtenGen Shared Memory</div>
-            <div style="font-size:13px;color:#f8fafc;font-weight:500;">${message}</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;color:#a1a1aa;font-weight:700;">ExtenGen Shared Memory</div>
+            <div style="font-size:13px;color:#f4f4f5;font-weight:600;">${message}</div>
           </div>
         </div>
-        <button id="extengen-toast-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;padding:4px;display:flex;align-items:center;">
+        <button id="extengen-toast-close" style="background:transparent;border:none;color:#a1a1aa;cursor:pointer;padding:4px;display:flex;align-items:center;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -152,44 +192,37 @@
       </div>
     `;
 
-    Object.assign(banner.style, {
-      position: "fixed",
-      top: "20px",
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: "9999999",
-      background: "#0f172a",
-      border: "1px solid rgba(16,185,129,0.3)",
-      borderRadius: "14px",
-      padding: "10px 18px",
-      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-      maxWidth: "92vw",
-      minWidth: "360px",
-    });
-
     document.body.appendChild(banner);
-    document.getElementById("extengen-toast-close")?.addEventListener("click", () => banner.remove());
-    setTimeout(() => banner.remove(), 7000);
+
+    const closeBtn = document.getElementById("extengen-toast-close");
+    if (closeBtn) {
+      closeBtn.onclick = () => banner.remove();
+    }
+
+    setTimeout(() => {
+      if (document.body.contains(banner)) {
+        banner.remove();
+      }
+    }, 7000);
   }
 
   function findInputField() {
     const candidates = [
       '#prompt-textarea',
-      'rich-textarea div[contenteditable="true"]',
-      'div[contenteditable="true"].ProseMirror',
-      'div.ProseMirror',
+      'textarea[placeholder*="Ask"]',
+      'textarea[placeholder*="Message"]',
+      'textarea[placeholder*="Type"]',
       'textarea#chat-input',
       'textarea#userInput',
-      'textarea[placeholder*="Ask"]',
-      'div.ql-editor',
-      'fieldset div[contenteditable="true"]',
+      'div.ProseMirror[contenteditable="true"]',
+      'rich-textarea div[contenteditable="true"]',
+      'div[contenteditable="true"][role="textbox"]',
       'div[contenteditable="true"]',
       'textarea',
     ];
 
-    for (const sel of candidates) {
-      const el = document.querySelector(sel);
+    for (const selector of candidates) {
+      const el = document.querySelector(selector);
       if (el && el.offsetParent !== null) {
         return el;
       }
@@ -204,9 +237,8 @@
       const handoff = data?.extengen_pending_handoff;
       if (!handoff || !handoff.content) return;
 
-      // Only inject if target matches current platform or is generic
       const targetId = handoff.toAgentId?.toLowerCase();
-      if (targetId && targetId !== currentPlatform.id) {
+      if (targetId && targetId !== currentPlatform.id && currentPlatform.id !== "generic") {
         return;
       }
 
@@ -250,9 +282,11 @@ Please acknowledge this past context and proceed with the task:`;
   }
 
   // ============================================================
-  // PART 3: UNIVERSAL FLOATING ACTION PILL & TARGET SELECTOR
+  // PART 3: PROMINENT FLOATING WIDGET WITH INLINE TARGET DROPDOWN
   // ============================================================
   function injectUniversalPill() {
+    removeLegacyElements();
+
     if (document.getElementById("extengen-universal-container")) return;
 
     const container = document.createElement("div");
@@ -265,124 +299,106 @@ Please acknowledge this past context and proceed with the task:`;
       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     });
 
-    // Dropdown menu of other 5 targets
+    // List of other 5 platforms excluding current platform
     const otherPlatforms = Object.values(AI_PLATFORMS).filter((p) => p.id !== currentPlatform.id);
 
-    const menu = document.createElement("div");
-    menu.id = "extengen-universal-menu";
-    Object.assign(menu.style, {
-      display: "none",
-      position: "absolute",
-      bottom: "48px",
-      right: "0",
-      background: "#0f172a",
-      border: "1px solid rgba(16, 185, 129, 0.35)",
-      borderRadius: "14px",
-      padding: "8px",
-      boxShadow: "0 16px 36px rgba(0,0,0,0.5)",
-      width: "210px",
-      flexDirection: "column",
-      gap: "4px",
-    });
+    // Default to Gemini or Claude if available
+    const defaultTarget = otherPlatforms.find((p) => p.id === "gemini") || otherPlatforms[0];
 
-    const menuHeader = document.createElement("div");
-    menuHeader.style.padding = "6px 10px 4px";
-    menuHeader.style.fontSize = "11px";
-    menuHeader.style.textTransform = "uppercase";
-    menuHeader.style.letterSpacing = "0.04em";
-    menuHeader.style.color = "#94a3b8";
-    menuHeader.style.fontWeight = "700";
-    menuHeader.innerText = "Handoff Context to:";
-    menu.appendChild(menuHeader);
-
-    otherPlatforms.forEach((target) => {
-      const item = document.createElement("button");
-      item.className = "extengen-menu-item";
-      item.style.display = "flex";
-      item.style.alignItems = "center";
-      item.style.justifyContent = "space-between";
-      item.style.width = "100%";
-      item.style.padding = "8px 10px";
-      item.style.background = "transparent";
-      item.style.border = "none";
-      item.style.borderRadius = "8px";
-      item.style.color = "#e2e8f0";
-      item.style.fontSize = "13px";
-      item.style.cursor = "pointer";
-      item.style.textAlign = "left";
-      item.style.transition = "background 0.15s ease, color 0.15s ease";
-
-      item.innerHTML = `
-        <span style="display:flex;align-items:center;gap:8px;">
-          <span style="width:7px;height:7px;border-radius:50%;background:${target.color};"></span>
-          <span>${target.name}</span>
-        </span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
-      `;
-
-      item.onclick = async (e) => {
-        e.stopPropagation();
-        menu.style.display = "none";
-        await executeHandoff(target);
-      };
-
-      menu.appendChild(item);
-    });
-
-    // Main Floating Action Button
-    const btn = document.createElement("button");
-    btn.id = "extengen-universal-btn";
-    Object.assign(btn.style, {
-      background: "#0f172a",
-      color: "#ffffff",
-      border: "1px solid rgba(16, 185, 129, 0.4)",
-      borderRadius: "999px",
-      padding: "9px 16px",
-      fontSize: "13px",
-      cursor: "pointer",
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      transition: "transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease",
-      backdropFilter: "blur(8px)",
-    });
-
-    btn.innerHTML = `
-      <span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.8);flex-shrink:0;"></span>
-      <span style="font-weight:600;letter-spacing:-0.01em;">ExtenGen</span>
-      <span style="opacity:0.35;">|</span>
-      <span style="display:flex;align-items:center;gap:6px;">
-        <span>Handoff</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </span>
+    const widget = document.createElement("div");
+    widget.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #09090b;
+      border: 1.5px solid #27272a;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+      border-radius: 999px;
+      padding: 6px 10px 6px 14px;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s ease;
     `;
 
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      menu.style.display = menu.style.display === "flex" ? "none" : "flex";
-    };
+    // Logo & Brand
+    const brand = document.createElement("div");
+    brand.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-right: 8px;
+      border-right: 1px solid #27272a;
+    `;
+    brand.innerHTML = `
+      <span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.8);flex-shrink:0;"></span>
+      <span style="font-size:12px;font-weight:700;color:#ffffff;letter-spacing:-0.01em;">ExtenGen</span>
+    `;
 
-    document.addEventListener("click", () => {
-      menu.style.display = "none";
+    // Label
+    const label = document.createElement("span");
+    label.style.cssText = "font-size:12px;color:#a1a1aa;font-weight:600;white-space:nowrap;";
+    label.innerText = "Handoff to:";
+
+    // INLINE SELECT DROPDOWN (Direct choose option!)
+    const select = document.createElement("select");
+    select.id = "extengen-target-select";
+    select.style.cssText = `
+      background: #18181b;
+      color: #fafafa;
+      border: 1px solid #3f3f46;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s ease;
+    `;
+
+    otherPlatforms.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.innerText = p.label;
+      if (p.id === defaultTarget.id) opt.selected = true;
+      select.appendChild(opt);
     });
 
-    container.appendChild(menu);
-    container.appendChild(btn);
-    document.body.appendChild(container);
+    // ACTION BUTTON
+    const actionBtn = document.createElement("button");
+    actionBtn.id = "extengen-handoff-action-btn";
+    actionBtn.style.cssText = `
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, transform 0.1s ease;
+      white-space: nowrap;
+    `;
+    actionBtn.innerHTML = `
+      <span>Hand Off</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14"/>
+        <path d="m12 5 7 7-7 7"/>
+      </svg>
+    `;
 
-    async function executeHandoff(target) {
-      btn.innerHTML = `
-        <span style="display:inline-flex;align-items:center;gap:8px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:extengen-spin 0.8s linear infinite;">
-            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-          </svg>
-          <span>Syncing to ${target.name}...</span>
-        </span>
+    actionBtn.onclick = async () => {
+      const selectedId = select.value;
+      const target = AI_PLATFORMS[selectedId] || defaultTarget;
+
+      actionBtn.disabled = true;
+      actionBtn.style.background = "#27272a";
+      actionBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:extengen-spin 0.8s linear infinite;">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <span>Syncing...</span>
       `;
 
       try {
@@ -397,84 +413,72 @@ Please acknowledge this past context and proceed with the task:`;
             toAgent: target.name,
             title: `${currentPlatform.name} Session Handoff`,
             content: textContext,
-            url: window.location.href,
           }),
         });
 
         const data = await response.json();
+        console.log("[ExtenGen] Handoff saved:", data);
 
         // 2. Save in Chrome storage
         if (chrome?.storage?.local) {
-          await chrome.storage.local.set({
-            extengen_pending_handoff: {
-              fromAgent: currentPlatform.name,
-              toAgent: target.name,
-              toAgentId: target.id,
-              content: textContext,
-              handoffPrompt: data.handoffPrompt || textContext,
-              timestamp: Date.now(),
+          chrome.storage.local.set(
+            {
+              extengen_pending_handoff: {
+                fromAgent: currentPlatform.name,
+                toAgent: target.name,
+                toAgentId: target.id,
+                content: textContext,
+                timestamp: Date.now(),
+              },
             },
-          });
+            () => {
+              window.open(target.url, "_blank");
+            }
+          );
+        } else {
+          window.open(target.url, "_blank");
         }
 
-        btn.innerHTML = `
-          <span style="display:inline-flex;align-items:center;gap:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            <span>Saved · Opening ${target.name}</span>
-          </span>
-        `;
-        btn.style.background = "#065f46";
-
         setTimeout(() => {
-          window.open(target.url, "_blank");
-          btn.style.background = "#0f172a";
-          btn.innerHTML = `
-            <span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.8);flex-shrink:0;"></span>
-            <span style="font-weight:600;">ExtenGen</span>
-            <span style="opacity:0.35;">|</span>
-            <span style="display:flex;align-items:center;gap:6px;">
-              <span>Handoff</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </span>
+          actionBtn.disabled = false;
+          actionBtn.style.background = "#10b981";
+          actionBtn.innerHTML = `
+            <span>Hand Off</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="m12 5 7 7-7 7"/>
+            </svg>
           `;
-        }, 1100);
+        }, 3000);
       } catch (err) {
-        console.error("[ExtenGen] Universal Handoff Error:", err);
-        btn.innerHTML = `
-          <span style="display:inline-flex;align-items:center;gap:8px;color:#fca5a5;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <span>Server Offline (Port 3001)</span>
-          </span>
-        `;
-        btn.style.background = "#7f1d1d";
-
+        console.error("[ExtenGen] Handoff error:", err);
+        actionBtn.disabled = false;
+        actionBtn.style.background = "#ef4444";
+        actionBtn.innerText = "Error!";
         setTimeout(() => {
-          btn.style.background = "#0f172a";
-          btn.innerHTML = `
-            <span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.8);flex-shrink:0;"></span>
-            <span style="font-weight:600;">ExtenGen</span>
-            <span style="opacity:0.35;">|</span>
-            <span style="display:flex;align-items:center;gap:6px;">
-              <span>Handoff</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </span>
+          actionBtn.style.background = "#10b981";
+          actionBtn.innerHTML = `
+            <span>Hand Off</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="m12 5 7 7-7 7"/>
+            </svg>
           `;
-        }, 3500);
+        }, 2500);
       }
-    }
+    };
+
+    widget.appendChild(brand);
+    widget.appendChild(label);
+    widget.appendChild(select);
+    widget.appendChild(actionBtn);
+
+    container.appendChild(widget);
+    document.body.appendChild(container);
   }
 
-  // Run initialization
-  window.addEventListener("load", checkAndInjectIncomingContext);
+  // Periodic checker to ensure pill is present in SPA navigation
+  setTimeout(injectUniversalPill, 1200);
   setTimeout(checkAndInjectIncomingContext, 2000);
   setInterval(injectUniversalPill, 1500);
 })();
-

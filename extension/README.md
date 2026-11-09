@@ -1,6 +1,6 @@
-# ExtenGen — ChatGPT ↔ Gemini Chrome Extension
+# ExtenGen — Universal Multi-Agent Browser Extension (Manifest V3)
 
-Connects **ChatGPT** and **Google Gemini** into a single shared institutional memory stream powered by **ExtenGen MCP** and **Supabase PostgreSQL (pgvector)**.
+Connects **ChatGPT**, **Claude**, **Google Gemini**, **DeepSeek**, **Microsoft Copilot**, and **Perplexity AI** into a single shared institutional memory stream powered by **ExtenGen MCP** and **Supabase PostgreSQL (pgvector)**.
 
 ---
 
@@ -13,16 +13,16 @@ Connects **ChatGPT** and **Google Gemini** into a single shared institutional me
    ```
    *(For Edge: `edge://extensions`, for Brave: `brave://extensions`)*
 3. Enable **"Developer mode"** (toggle in the top-right corner).
-4. Click **"Load unpacked"** (top-left button).
-5. Select this folder:
+4. If already loaded: Click the **circular reload icon** on the ExtenGen card.
+   If not yet loaded: Click **"Load unpacked"** and select:
    ```text
    C:\ExtenGen-Ai\extension
    ```
-6. **Done!** The ExtenGen Agent Bridge icon is now installed in your browser.
+5. **IMPORTANT:** After reloading the extension, press **F5 (Reload Page)** on any open AI tabs (`chatgpt.com`, `claude.ai`, `deepseek.com`, etc.) so the updated script takes effect.
 
 ---
 
-## How to Use: ChatGPT to Gemini Context Handoff
+## How to Use: Universal Any-to-Any Context Handoff
 
 1. **Ensure the ExtenGen backend is active:**
    ```bash
@@ -30,18 +30,25 @@ Connects **ChatGPT** and **Google Gemini** into a single shared institutional me
    # (Runs Fastify backend on port 3001)
    ```
 
-2. **Open ChatGPT:**
-   - Go to [https://chatgpt.com](https://chatgpt.com).
-   - Converse with ChatGPT about any project, architecture, code, or decision.
-   - Look at the bottom-right corner of your screen:
-     You will see the floating pill button:
-     **`[ ExtenGen | Handoff to Gemini ]`**
+2. **Open ANY supported AI website:**
+   - [ChatGPT](https://chatgpt.com)
+   - [Anthropic Claude](https://claude.ai)
+   - [Google Gemini](https://gemini.google.com/app)
+   - [DeepSeek Chat](https://chat.deepseek.com)
+   - [Microsoft Copilot](https://copilot.microsoft.com)
+   - [Perplexity AI](https://www.perplexity.ai)
 
-3. **Click the button (Single Click):**
-   - ExtenGen automatically scrapes key decisions and active context from your ChatGPT conversation.
-   - Embeds the content into a 768-dimensional vector and saves it into **Supabase PostgreSQL**.
-   - Automatically opens **Google Gemini** (`https://gemini.google.com/app`) in a new tab.
+3. **Look at the bottom-right corner of your screen:**
+   You will see the floating pill widget:
+   ```text
+   [ ExtenGen | Handoff to: (Dropdown Select) | Hand Off ]
+   ```
 
-4. **Watch Gemini Continue Your Work:**
-   - When Gemini loads, ExtenGen automatically injects the exact context and memory from your ChatGPT session into Gemini's input container.
-   - Gemini continues the conversation with full context, zero session loss, and zero token waste.
+4. **Choose any target AI from the dropdown:**
+   - Select **Claude**, **DeepSeek**, **Gemini**, **Copilot**, **ChatGPT**, or **Perplexity**.
+   - Click **"Hand Off"**.
+
+5. **Watch the destination AI continue your work:**
+   - ExtenGen embeds the conversation context via Google Gemini 768d embeddings into Supabase pgvector.
+   - Automatically opens your chosen target AI in a new tab.
+   - Automatically pre-fills and injects the context directly into the target AI's prompt box with zero context loss.
