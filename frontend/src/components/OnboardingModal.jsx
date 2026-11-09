@@ -116,15 +116,22 @@ export function OnboardingModal({ isOpen, onClose }) {
   };
 
   const snippets = {
-    extension: `// ExtenGen Chrome Extension (1-Click Real Web Sync)
+    extension: `// ExtenGen Chrome Extension (Universal Multi-Agent Mesh)
 // 1. Open chrome://extensions
 // 2. Turn ON "Developer mode"
 // 3. Click "Load unpacked" and select:
 C:\\ExtenGen-Ai\\extension
 
-// Now when you chat on https://chatgpt.com, click the floating pill button:
-// [ ExtenGen | Handoff to Gemini ]
-// ExtenGen automatically embeds your session & opens Gemini with context pre-injected!`,
+// Supported AI Engines (6 Universal Platforms):
+// - ChatGPT (chatgpt.com, chat.openai.com)
+// - Anthropic Claude (claude.ai)
+// - Google Gemini (gemini.google.com)
+// - DeepSeek Chat (chat.deepseek.com)
+// - Microsoft Copilot (copilot.microsoft.com)
+// - Perplexity AI (perplexity.ai)
+
+// On any AI page, click the floating pill [ ExtenGen | Handoff to... ]
+// Select any destination AI to hand off real context & memory instantly!`,
 
     cursor: `// Cursor IDE Setup (.cursor/mcp.json):
 {

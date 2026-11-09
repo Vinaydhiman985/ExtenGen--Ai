@@ -53,7 +53,7 @@ export const MOCK_MEMORIES = [
     createdAt: "10 mins ago",
     vectorId: "pending_embedding",
     supersededBy: null,
-    duplicateWarning: "⚠️ 94% similarity match with memory #mem-201 (Off-by-one pagination rule)"
+    duplicateWarning: "[Alert] 94% similarity match with memory #mem-201 (Off-by-one pagination rule)"
   },
   {
     id: "mem-204",

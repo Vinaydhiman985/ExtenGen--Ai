@@ -73,27 +73,40 @@ export const handoffRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // Query handoff memory for target agent (e.g. Gemini querying incoming context)
+  // Query handoff memory for target agent (e.g. Gemini, DeepSeek, Claude, Copilot, Perplexity, ChatGPT)
   fastify.get('/api/v1/handoff/latest', async (request, reply) => {
     const authHeader = request.headers.authorization;
     const tenant = await resolveAuthContext(authHeader);
+    const query = request.query as any;
+    const targetAgent = query?.toAgent ? String(query.toAgent).trim() : null;
 
     const recall = await recallContext(tenant, {
-      query: 'session handoff context decisions',
-      limit: 1,
-      similarityThreshold: 0.10,
+      query: targetAgent ? `session handoff context decisions for ${targetAgent}` : 'session handoff context decisions',
+      limit: 10,
+      similarityThreshold: 0.05,
     });
 
-    const latest = recall.observations[0] || null;
+    let latest = recall.observations[0] || null;
+    if (targetAgent && recall.observations.length > 0) {
+      const targeted = recall.observations.find(obs => {
+        const metaTo = String((obs.metadata as any)?.toAgent || '').toLowerCase();
+        const tags = Array.isArray(obs.metadata?.tags) ? (obs.metadata?.tags as string[]) : [];
+        return metaTo.includes(targetAgent.toLowerCase()) || tags.includes(targetAgent.toLowerCase());
+      });
+      if (targeted) {
+        latest = targeted;
+      }
+    }
+
     const handoffData = latest ? {
       id: latest.id,
       title: latest.title,
       content: latest.content,
-      fromAgent: latest.metadata?.fromAgent || 'ChatGPT',
-      toAgent: latest.metadata?.toAgent || 'Gemini',
+      fromAgent: (latest.metadata as any)?.fromAgent || 'ChatGPT',
+      toAgent: (latest.metadata as any)?.toAgent || targetAgent || 'Gemini',
       similarity: latest.similarity,
       handoffPrompt: [
-        `[ExtenGen Shared Memory — Bridged from ${latest.metadata?.fromAgent || 'ChatGPT'}]:`,
+        `[ExtenGen Shared Memory — Bridged from ${(latest.metadata as any)?.fromAgent || 'Source Agent'}]:`,
         '```untrusted_context',
         latest.content.replace(/```/g, "'''"),
         '```',

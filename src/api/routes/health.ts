@@ -65,4 +65,20 @@ export const healthRoutes: FastifyPluginAsync = async (fastify) => {
       agents: Array.from(connectedAgents.values()),
     };
   });
+
+  // Universal AI Agent Mesh Registry (All Major Foundation Engines)
+  fastify.get('/api/v1/agents/mesh', async (request, reply) => {
+    return {
+      success: true,
+      count: 6,
+      agents: [
+        { id: 'chatgpt', name: 'ChatGPT', provider: 'OpenAI', domain: 'chatgpt.com', url: 'https://chatgpt.com' },
+        { id: 'claude', name: 'Claude', provider: 'Anthropic', domain: 'claude.ai', url: 'https://claude.ai/new' },
+        { id: 'gemini', name: 'Google Gemini', provider: 'Google', domain: 'gemini.google.com', url: 'https://gemini.google.com/app' },
+        { id: 'deepseek', name: 'DeepSeek', provider: 'DeepSeek AI', domain: 'chat.deepseek.com', url: 'https://chat.deepseek.com' },
+        { id: 'copilot', name: 'Microsoft Copilot', provider: 'Microsoft', domain: 'copilot.microsoft.com', url: 'https://copilot.microsoft.com' },
+        { id: 'perplexity', name: 'Perplexity AI', provider: 'Perplexity', domain: 'perplexity.ai', url: 'https://www.perplexity.ai' },
+      ],
+    };
+  });
 };

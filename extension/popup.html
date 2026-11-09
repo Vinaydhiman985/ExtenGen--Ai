@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ExtenGen Agent Bridge</title>
+  <title>ExtenGen Universal AI Mesh</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 320px;
+      width: 340px;
       padding: 16px;
       background: #09090b;
       color: #fafafa;
@@ -20,7 +20,7 @@
       justify-content: space-between;
       border-bottom: 1px solid #27272a;
       padding-bottom: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .brand {
       display: flex;
@@ -44,20 +44,19 @@
       background: #18181b;
       border: 1px solid #27272a;
       border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 14px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
     }
     .status-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 12px;
-      margin-bottom: 8px;
+      font-size: 11.5px;
+      margin-bottom: 6px;
     }
     .status-row:last-child { margin-bottom: 0; }
     .status-label {
       color: #a1a1aa;
-      font-size: 11.5px;
     }
     .dot {
       width: 7px;
@@ -68,58 +67,70 @@
     }
     .dot.online { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.8); }
     .dot.offline { background: #ef4444; }
-    .btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #71717a;
+      font-weight: 700;
+      margin: 10px 0 8px;
     }
-    .btn {
+    .mesh-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .mesh-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      width: 100%;
-      padding: 9px 12px;
+      padding: 8px 10px;
+      background: #18181b;
+      border: 1px solid #27272a;
       border-radius: 8px;
-      font-size: 12.5px;
-      font-weight: 500;
-      cursor: pointer;
+      color: #e4e4e7;
       text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
       transition: all 0.15s ease;
     }
-    .btn-secondary {
-      background: #18181b;
-      color: #f4f4f5;
-      border: 1px solid #27272a;
-    }
-    .btn-secondary:hover {
+    .mesh-item:hover {
       background: #27272a;
       border-color: #3f3f46;
+      color: #ffffff;
     }
-    .btn-primary {
-      background: #10b981;
-      color: #09090b;
-      border: 1px solid transparent;
-      font-weight: 600;
-    }
-    .btn-primary:hover {
-      background: #059669;
-    }
-    .btn-content {
+    .mesh-item-left {
       display: flex;
       align-items: center;
+      gap: 6px;
+    }
+    .btn-dashboard {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       gap: 8px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      background: #10b981;
+      color: #09090b;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .btn-dashboard:hover {
+      background: #059669;
     }
     .footer {
       font-size: 11px;
       color: #71717a;
       text-align: center;
-      margin-top: 14px;
+      margin-top: 10px;
       line-height: 1.4;
-      padding-top: 10px;
+      padding-top: 8px;
       border-top: 1px solid #18181b;
-    }
-    .footer strong {
-      color: #a1a1aa;
     }
   </style>
 </head>
@@ -136,75 +147,88 @@
         <path d="M4.93 19.07l2.83-2.83"/>
         <path d="M16.24 7.76l2.83-2.83"/>
       </svg>
-      <span>ExtenGen Bridge</span>
+      <span>Universal AI Mesh</span>
     </div>
-    <span class="badge">v1.0</span>
+    <span class="badge">6 AIs Live</span>
   </div>
 
   <div class="status-card">
     <div class="status-row">
-      <span class="status-label">Fastify Backend:</span>
-      <span id="api-status" style="font-family: ui-monospace, monospace; font-size: 11.5px;">
+      <span class="status-label">Memory Hub:</span>
+      <span id="api-status" style="font-family: ui-monospace, monospace;">
         <span class="dot offline"></span>Checking port 3001...
       </span>
     </div>
     <div class="status-row">
       <span class="status-label">Vector Storage:</span>
-      <span style="color: #10b981; font-family: ui-monospace, monospace; font-size: 11.5px;">pgvector (768d)</span>
-    </div>
-    <div class="status-row">
-      <span class="status-label">Bridge Pipeline:</span>
-      <span style="font-weight: 500; font-size: 11.5px;">ChatGPT ➔ Gemini</span>
+      <span style="color: #10b981; font-family: ui-monospace, monospace;">Supabase (768d MRL)</span>
     </div>
   </div>
 
-  <div class="btn-group">
-    <a href="https://chatgpt.com" target="_blank" class="btn btn-secondary">
-      <div class="btn-content">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        <span>Open ChatGPT</span>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-        <polyline points="15 3 21 3 21 9"/>
-        <line x1="10" y1="14" x2="21" y2="3"/>
-      </svg>
+  <div class="section-title">Launch Connected Mesh Agents</div>
+
+  <div class="mesh-grid">
+    <a href="https://chatgpt.com" target="_blank" class="mesh-item">
+      <span class="mesh-item-left">
+        <span style="width:6px;height:6px;border-radius:50%;background:#10b981;"></span>
+        <span>ChatGPT</span>
+      </span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </a>
 
-    <a href="https://gemini.google.com/app" target="_blank" class="btn btn-secondary">
-      <div class="btn-content">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
-        <span>Open Google Gemini</span>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-        <polyline points="15 3 21 3 21 9"/>
-        <line x1="10" y1="14" x2="21" y2="3"/>
-      </svg>
+    <a href="https://claude.ai/new" target="_blank" class="mesh-item">
+      <span class="mesh-item-left">
+        <span style="width:6px;height:6px;border-radius:50%;background:#d97706;"></span>
+        <span>Claude</span>
+      </span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </a>
 
-    <a href="http://localhost:5174" target="_blank" class="btn btn-primary">
-      <div class="btn-content">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7"/>
-          <rect x="14" y="3" width="7" height="7"/>
-          <rect x="14" y="14" width="7" height="7"/>
-          <rect x="3" y="14" width="7" height="7"/>
-        </svg>
-        <span>Open ExtenGen Dashboard</span>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
+    <a href="https://gemini.google.com/app" target="_blank" class="mesh-item">
+      <span class="mesh-item-left">
+        <span style="width:6px;height:6px;border-radius:50%;background:#2563eb;"></span>
+        <span>Gemini</span>
+      </span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+
+    <a href="https://chat.deepseek.com" target="_blank" class="mesh-item">
+      <span class="mesh-item-left">
+        <span style="width:6px;height:6px;border-radius:50%;background:#6366f1;"></span>
+        <span>DeepSeek</span>
+      </span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+
+    <a href="https://copilot.microsoft.com" target="_blank" class="mesh-item">
+      <span class="mesh-item-left">
+        <span style="width:6px;height:6px;border-radius:50%;background:#0284c7;"></span>
+        <span>Copilot</span>
+      </span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+
+    <a href="https://www.perplexity.ai" target="_blank" class="mesh-item">
+      <span class="mesh-item-left">
+        <span style="width:6px;height:6px;border-radius:50%;background:#06b6d4;"></span>
+        <span>Perplexity</span>
+      </span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </a>
   </div>
+
+  <a href="http://localhost:5174" target="_blank" class="btn-dashboard">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/>
+      <rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
+    </svg>
+    <span>Open ExtenGen Dashboard</span>
+  </a>
 
   <div class="footer">
-    On ChatGPT, use the floating <strong>"Handoff to Gemini"</strong> pill to automatically bridge sessions.
+    Click <strong>"ExtenGen | Handoff"</strong> on any AI page to transfer memory to any other model instantly.
   </div>
 
   <script src="popup.js"></script>

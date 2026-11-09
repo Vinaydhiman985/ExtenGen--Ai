@@ -1,56 +1,78 @@
 import React, { useState } from "react";
 import { runMultiAgentSimulation } from "../services/api.js";
 
+const AVAILABLE_AGENTS = [
+  "ChatGPT (OpenAI)",
+  "Claude (Anthropic)",
+  "Google Gemini",
+  "DeepSeek Chat",
+  "Microsoft Copilot",
+  "Perplexity AI",
+  "Cursor IDE",
+  "Windsurf (Codeium)",
+  "Codex CLI"
+];
+
 const PRESET_SCENARIOS = [
   {
-    name: "ChatGPT ➔ Gemini Live Handoff",
-    agent1: "ChatGPT (Agent 1 - Source)",
-    agent2: "Google Gemini (Agent 2 - Target)",
-    ruleTitle: "ChatGPT Session Snapshot: Microservices Architecture",
+    name: "ChatGPT ➔ Gemini",
+    agent1: "ChatGPT (OpenAI)",
+    agent2: "Google Gemini",
+    ruleTitle: "Microservices Architecture & Auth Standards",
     ruleContent: "In my ChatGPT session, we finalized: 1. Authentication via Supabase Auth + JWT Bearer. 2. Microservices communication using Redis BullMQ queues. 3. PostgreSQL 17 with pgvector for shared memories.",
     ruleTags: ["chatgpt", "gemini", "handoff", "architecture"],
     query: "What authentication and queue system was decided in my previous ChatGPT session?",
     expectedMatch: "Supabase Auth + JWT Bearer"
   },
   {
-    name: "Custom (Your Own Live Input)",
-    agent1: "Agent 1 (Architect / Dev)",
-    agent2: "Agent 2 (Assistant / Reviewer)",
+    name: "Claude ➔ DeepSeek",
+    agent1: "Claude (Anthropic)",
+    agent2: "DeepSeek Chat",
+    ruleTitle: "High-Performance Rust Memory Buffers",
+    ruleContent: "All high-throughput telemetry streams must use zero-copy ring buffers implemented in Rust with crossbeam-channel. Allocate pre-pinned memory slabs of 64MB each to avoid Linux kernel GC pauses.",
+    ruleTags: ["claude", "deepseek", "rust", "performance"],
+    query: "What memory model and allocation strategy did Claude specify for our telemetry stream?",
+    expectedMatch: "zero-copy ring buffers implemented in Rust"
+  },
+  {
+    name: "DeepSeek ➔ Copilot",
+    agent1: "DeepSeek Chat",
+    agent2: "Microsoft Copilot",
+    ruleTitle: "Distributed Consensus: Raft Quorum Heartbeat",
+    ruleContent: "Cluster nodes must configure Raft election timeouts between 150ms and 300ms, with leader heartbeat intervals strictly capped at 50ms to ensure sub-second failover under network partitions.",
+    ruleTags: ["deepseek", "copilot", "raft", "distributed-systems"],
+    query: "What Raft election timeout and heartbeat interval should I set for our consensus cluster?",
+    expectedMatch: "election timeouts between 150ms and 300ms"
+  },
+  {
+    name: "Perplexity ➔ Gemini",
+    agent1: "Perplexity AI",
+    agent2: "Google Gemini",
+    ruleTitle: "Compliance Standard: EU AI Act Risk Tiering",
+    ruleContent: "All production deployments operating in EU jurisdictions must attach transparency metadata headers with SHA-256 model weights hashes, inference latency metrics, and automated human-in-the-loop audit logs.",
+    ruleTags: ["perplexity", "gemini", "compliance", "governance"],
+    query: "What transparency metadata and audit logs are required for our EU deployment?",
+    expectedMatch: "SHA-256 model weights hashes"
+  },
+  {
+    name: "Copilot ➔ ChatGPT",
+    agent1: "Microsoft Copilot",
+    agent2: "ChatGPT (OpenAI)",
+    ruleTitle: "Frontend Streaming Architecture: Server-Sent Events",
+    ruleContent: "Do not use short-polling for agent status. All live agent dashboards must consume Server-Sent Events (SSE) via /api/v1/events with 5s keepalive ping frames and auto-reconnect backoff.",
+    ruleTags: ["copilot", "chatgpt", "sse", "streaming"],
+    query: "How should our agent dashboard receive real-time status updates from the backend?",
+    expectedMatch: "Server-Sent Events (SSE)"
+  },
+  {
+    name: "Custom Scenario",
+    agent1: "ChatGPT (OpenAI)",
+    agent2: "Claude (Anthropic)",
     ruleTitle: "Custom Engineering Decision",
     ruleContent: "We decided to migrate our frontend from REST polling to Server-Sent Events (SSE) with 5s keepalive pings.",
     ruleTags: ["custom", "standards", "architecture"],
     query: "How should our frontend stream live updates from the backend?",
     expectedMatch: "Server-Sent Events (SSE)"
-  },
-  {
-    name: "Stripe Refund Idempotency Rule",
-    agent1: "Claude Code CLI",
-    agent2: "Cursor IDE",
-    ruleTitle: "Payment Standard: Stripe Refund Idempotency Keys",
-    ruleContent: "All Stripe refund requests must include an idempotency_key formatted as 'stripe:refund:${orderId}' with a 24-hour Redis TTL to prevent duplicate refunds on network retry.",
-    ruleTags: ["stripe", "payments", "idempotency", "redis"],
-    query: "How do I prevent duplicate payments when triggering a refund in the order cancel controller?",
-    expectedMatch: "Stripe refund requests must include an idempotency_key"
-  },
-  {
-    name: "Cursor Pagination Standard",
-    agent1: "Cursor IDE",
-    agent2: "Windsurf (Codeium)",
-    ruleTitle: "API Design: Cursor-Based Pagination for High Volume Endpoints",
-    ruleContent: "Do not use SQL OFFSET pagination on /invoices, /orders, or /logs. Use opaque base64 cursors encoded from 'created_at:id' with WHERE (created_at, id) < ($1, $2).",
-    ruleTags: ["api", "db", "pagination", "standards"],
-    query: "Implement pagination for the transactions endpoint without performance degradation.",
-    expectedMatch: "Do not use SQL OFFSET pagination"
-  },
-  {
-    name: "Vitest Thread Isolation Config",
-    agent1: "Codex CLI",
-    agent2: "Claude Code CLI",
-    ruleTitle: "Testing Framework: Vitest Thread Isolation with Fastify",
-    ruleContent: "When testing Fastify server routes with mock SQLite and real memory tables, run Vitest with isolate: false to avoid duplicate server port collisions.",
-    ruleTags: ["testing", "vitest", "fastify"],
-    query: "Why are my integration tests failing with EADDRINUSE on port 3000?",
-    expectedMatch: "run Vitest with isolate: false to avoid duplicate server port collisions"
   }
 ];
 
@@ -120,12 +142,12 @@ export function MultiAgentCollabSection() {
       <div className="dash-sec-header">
         <div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
-            <span className="dash-badge dash-badge-yellow">Live Proof Harness</span>
+            <span className="dash-badge dash-badge-yellow">Universal Mesh Harness</span>
             <span className="dash-badge dash-badge-green">Google Gemini MRL Embeddings (768d)</span>
           </div>
           <h1>Multi-Agent Collaboration Lab</h1>
           <p>
-            Experience and verify how ExtenGen connects completely separate AI coding agents into a single shared institutional memory layer via MCP.
+            Experience and verify how ExtenGen connects completely separate AI foundation models into a single shared institutional memory layer via pgvector.
           </p>
         </div>
         <div>
@@ -165,30 +187,62 @@ export function MultiAgentCollabSection() {
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <strong style={{ fontSize: "15px" }}>Real-Life Chrome Extension Ready</strong>
+              <strong style={{ fontSize: "15px" }}>Universal Chrome Extension Ready (6 AI Engines)</strong>
               <span className="dash-badge dash-badge-green" style={{ fontSize: "11px" }}>Manifest V3</span>
             </div>
             <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#cccccc" }}>
-              Connect real <strong>chatgpt.com</strong> to <strong>gemini.google.com</strong> with a 1-click floating button! Load unpacked from <code>C:\ExtenGen-Ai\extension</code>.
+              Live bidirectional mesh across <strong>ChatGPT</strong>, <strong>Claude</strong>, <strong>Gemini</strong>, <strong>DeepSeek</strong>, <strong>Copilot</strong>, and <strong>Perplexity</strong>. Load unpacked from <code>C:\ExtenGen-Ai\extension</code>.
             </p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           <a
             href="https://chatgpt.com"
             target="_blank"
             rel="noopener noreferrer"
             className="dash-pill dash-pill-white dash-pill-sm"
           >
-            Open ChatGPT
+            ChatGPT
+          </a>
+          <a
+            href="https://claude.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dash-pill dash-pill-white dash-pill-sm"
+          >
+            Claude
           </a>
           <a
             href="https://gemini.google.com/app"
             target="_blank"
             rel="noopener noreferrer"
+            className="dash-pill dash-pill-white dash-pill-sm"
+          >
+            Gemini
+          </a>
+          <a
+            href="https://chat.deepseek.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dash-pill dash-pill-white dash-pill-sm"
+          >
+            DeepSeek
+          </a>
+          <a
+            href="https://copilot.microsoft.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dash-pill dash-pill-white dash-pill-sm"
+          >
+            Copilot
+          </a>
+          <a
+            href="https://perplexity.ai"
+            target="_blank"
+            rel="noopener noreferrer"
             className="dash-pill dash-pill-green dash-pill-sm"
           >
-            Open Gemini
+            Perplexity
           </a>
         </div>
       </div>
@@ -197,8 +251,8 @@ export function MultiAgentCollabSection() {
       <div className="dash-box" style={{ marginBottom: "20px", padding: "14px 20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <strong style={{ fontSize: "14px" }}>Interactive Scenarios & Presets:</strong>
-            <span className="dash-badge dash-badge-yellow" style={{ fontSize: "10px" }}>Sample Templates</span>
+            <strong style={{ fontSize: "14px" }}>Universal Mesh Presets:</strong>
+            <span className="dash-badge dash-badge-yellow" style={{ fontSize: "10px" }}>6 Foundation Models</span>
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {PRESET_SCENARIOS.map((s, idx) => (
@@ -222,11 +276,22 @@ export function MultiAgentCollabSection() {
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span className="dash-badge dash-badge-dark" style={{ fontWeight: 800 }}>A1</span>
               <div>
-                <strong style={{ fontSize: "15px" }}>Agent 1 (Decision Creator)</strong>
-                <div style={{ fontSize: "12px", color: "#666" }}>Runs in Developer Terminal</div>
+                <strong style={{ fontSize: "15px" }}>Agent 1 (Source Author)</strong>
+                <div style={{ fontSize: "12px", color: "#666" }}>Captures and writes architecture memory</div>
               </div>
             </div>
-            <span className="dash-badge dash-badge-dark">{agent1Name}</span>
+            <div>
+              <select
+                className="dash-input"
+                value={agent1Name}
+                onChange={(e) => setAgent1Name(e.target.value)}
+                style={{ padding: "4px 8px", fontSize: "12px", borderRadius: "6px", fontWeight: "bold" }}
+              >
+                {AVAILABLE_AGENTS.map((agent) => (
+                  <option key={agent} value={agent}>{agent}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ marginBottom: "10px" }}>
@@ -289,11 +354,22 @@ export function MultiAgentCollabSection() {
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span className="dash-badge dash-badge-yellow" style={{ fontWeight: 800 }}>A2</span>
               <div>
-                <strong style={{ fontSize: "15px" }}>Agent 2 (Context Consumer)</strong>
-                <div style={{ fontSize: "12px", color: "#666" }}>Runs in IDE / Laptop 2</div>
+                <strong style={{ fontSize: "15px" }}>Agent 2 (Target Consumer)</strong>
+                <div style={{ fontSize: "12px", color: "#666" }}>Retrieves shared context seamlessly</div>
               </div>
             </div>
-            <span className="dash-badge dash-badge-yellow">{agent2Name}</span>
+            <div>
+              <select
+                className="dash-input"
+                value={agent2Name}
+                onChange={(e) => setAgent2Name(e.target.value)}
+                style={{ padding: "4px 8px", fontSize: "12px", borderRadius: "6px", fontWeight: "bold" }}
+              >
+                {AVAILABLE_AGENTS.map((agent) => (
+                  <option key={agent} value={agent}>{agent}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ marginBottom: "12px" }}>
@@ -353,7 +429,7 @@ export function MultiAgentCollabSection() {
               {executionStep >= 2 ? "1" : executionStep === 1 ? "..." : "1"}
             </div>
             <div style={{ flex: 1 }}>
-              <strong>Step 1: Agent 1 captures & embeds decision into PostgreSQL</strong>
+              <strong>Step 1: Agent 1 ({agent1Name}) captures & embeds decision into PostgreSQL</strong>
               <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
                 Generates 768-dimensional dense neural embedding via Google Gemini gemini-embedding-001 pipeline.
               </div>
@@ -379,7 +455,7 @@ export function MultiAgentCollabSection() {
               {executionStep >= 4 ? "2" : executionStep === 3 ? "..." : "2"}
             </div>
             <div style={{ flex: 1 }}>
-              <strong>Step 2: Agent 2 queries ExtenGen with zero prior knowledge</strong>
+              <strong>Step 2: Agent 2 ({agent2Name}) queries ExtenGen with zero prior knowledge</strong>
               <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
                 Runs pgvector cosine distance search across institutional knowledge base.
               </div>
@@ -416,9 +492,18 @@ export function MultiAgentCollabSection() {
               </pre>
 
               <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid #e2e8f0" }}>
-                <strong style={{ fontSize: "13px", color: "#1e293b", display: "block", marginBottom: "6px" }}>
-                  🤖 {agent2Name} (Live Synthesized Output):
-                </strong>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2"/>
+                    <circle cx="12" cy="5" r="2"/>
+                    <path d="M12 7v4"/>
+                    <line x1="8" y1="16" x2="8" y2="16"/>
+                    <line x1="16" y1="16" x2="16" y2="16"/>
+                  </svg>
+                  <strong style={{ fontSize: "13px", color: "#1e293b" }}>
+                    {agent2Name} (Live Synthesized Output):
+                  </strong>
+                </div>
                 <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "12px", fontSize: "13px", color: "#334155", lineHeight: "1.6" }}>
                   "I retrieved the architectural decision recorded by <strong>{agent1Name}</strong> regarding <em>{simResult.agentB.topMatch.title}</em>:
                   <div style={{ margin: "8px 0", padding: "8px 12px", borderLeft: "3px solid #10b981", background: "#f0fdf4", fontStyle: "italic" }}>
