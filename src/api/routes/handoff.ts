@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { resolveAuthContext } from '../../services/auth.js';
 import { storeObservation, recallContext } from '../../services/observations.js';
+import { broadcastLiveEvent } from '../../services/events.js';
 
 export const handoffRoutes: FastifyPluginAsync = async (fastify) => {
   // Capture active chat session from Agent A (e.g. ChatGPT) and prepare seamless handoff
@@ -34,6 +35,15 @@ export const handoffRoutes: FastifyPluginAsync = async (fastify) => {
         handoffAt: new Date().toISOString(),
         url: body.url || null,
       }
+    });
+
+    // Broadcast SSE live event
+    broadcastLiveEvent('sync', {
+      action: 'handoff',
+      fromAgent,
+      toAgent,
+      observationId: observation.id,
+      title,
     });
 
     // 2. Prepare the clean prompt injection string for Agent B (e.g. Gemini)

@@ -1,7 +1,8 @@
 import { FastifyPluginAsync } from 'fastify';
 import { resolveAuthContext } from '../../services/auth.js';
-import { listObservations } from '../../services/observations.js';
+import { listObservations, getSystemStats } from '../../services/observations.js';
 import { storeObservationWithContradictionCheck } from '../../services/contradictions.js';
+import { broadcastLiveEvent } from '../../services/events.js';
 
 export const observationRoutes: FastifyPluginAsync = async (fastify) => {
   // Capture observation
@@ -32,6 +33,14 @@ export const observationRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
+    // Broadcast SSE live event to connected frontend tabs and agents
+    broadcastLiveEvent('observation_created', {
+      observationId: result.observation.id,
+      title: result.observation.title,
+      source: result.observation.source,
+      orgId: tenant.orgId,
+    });
+
     return reply.status(201).send({
       success: true,
       observation: result.observation,
@@ -57,5 +66,13 @@ export const observationRoutes: FastifyPluginAsync = async (fastify) => {
       count: observations.length,
       observations,
     };
+  });
+
+  // Real-time system statistics directly from PostgreSQL
+  fastify.get('/api/v1/stats', async (request, reply) => {
+    const authHeader = request.headers.authorization;
+    const tenant = await resolveAuthContext(authHeader);
+    const stats = await getSystemStats(tenant);
+    return stats;
   });
 };

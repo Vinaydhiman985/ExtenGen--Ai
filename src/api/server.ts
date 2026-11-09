@@ -6,6 +6,7 @@ import { observationRoutes } from './routes/observations.js';
 import { recallRoutes } from './routes/recall.js';
 import { githubRoutes } from './routes/github.js';
 import { handoffRoutes } from './routes/handoff.js';
+import { eventsRoutes } from './routes/events.js';
 import { sseRoutes } from './sse.js';
 import { env } from '../config/env.js';
 
@@ -27,6 +28,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(recallRoutes);
   await app.register(githubRoutes);
   await app.register(handoffRoutes);
+  await app.register(eventsRoutes);
   await app.register(sseRoutes);
 
   return app;

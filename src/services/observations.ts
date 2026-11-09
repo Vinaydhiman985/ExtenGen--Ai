@@ -390,6 +390,87 @@ export async function listObservations(
 }
 
 /**
+ * Compute aggregate system statistics for a tenant
+ */
+export async function getSystemStats(tenant: TenantContext): Promise<{
+  totalMemories: number;
+  indexedCount: number;
+  sourcesBreakdown: Record<string, number>;
+  recentMemories: Observation[];
+}> {
+  const pool = getDbPool();
+
+  if (pool) {
+    try {
+      return await withTenantContext(tenant, async (client) => {
+        const statsRes = await client.query(
+          `SELECT 
+             COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE status = 'indexed')::int AS indexed
+           FROM observations
+           WHERE org_id = $1`,
+          [tenant.orgId]
+        );
+
+        const breakdownRes = await client.query(
+          `SELECT source, COUNT(*)::int AS count
+           FROM observations
+           WHERE org_id = $1
+           GROUP BY source`,
+          [tenant.orgId]
+        );
+
+        const recentRes = await client.query(
+          `SELECT id, org_id, source, title, content, metadata, status, created_at, updated_at
+           FROM observations
+           WHERE org_id = $1
+           ORDER BY created_at DESC
+           LIMIT 5`,
+          [tenant.orgId]
+        );
+
+        const sourcesBreakdown: Record<string, number> = {};
+        for (const row of breakdownRes.rows) {
+          sourcesBreakdown[row.source] = Number(row.count);
+        }
+
+        const recentMemories = recentRes.rows.map(row => ({
+          ...row,
+          tags: Array.isArray(row.metadata?.tags) ? row.metadata.tags : [],
+        }));
+
+        return {
+          totalMemories: Number(statsRes.rows[0]?.total || 0),
+          indexedCount: Number(statsRes.rows[0]?.indexed || 0),
+          sourcesBreakdown,
+          recentMemories,
+        };
+      });
+    } catch (err: any) {
+      console.warn('⚠️ Supabase stats query failed, falling back to in-memory store:', err.message);
+    }
+  }
+
+  // Memory store fallback
+  const tenantObs = Array.from(memoryStore.values()).filter(o => o.org_id === tenant.orgId);
+  const sourcesBreakdown: Record<string, number> = {};
+  for (const obs of tenantObs) {
+    sourcesBreakdown[obs.source] = (sourcesBreakdown[obs.source] || 0) + 1;
+  }
+
+  const sorted = tenantObs
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  return {
+    totalMemories: tenantObs.length,
+    indexedCount: tenantObs.filter(o => o.status === 'indexed').length,
+    sourcesBreakdown,
+    recentMemories: sorted.slice(0, 5),
+  };
+}
+
+/**
  * Clear in-memory store (used for tests)
  */
 export function clearMemoryStore(): void {

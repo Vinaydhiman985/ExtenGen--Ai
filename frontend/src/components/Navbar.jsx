@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { checkHealth, subscribeApiStatus, AVAILABLE_ORGS, getActiveOrg, setActiveOrg, subscribeActiveOrg } from "../services/api.js";
+import {
+  checkHealth,
+  subscribeApiStatus,
+  AVAILABLE_ORGS,
+  getActiveOrg,
+  setActiveOrg,
+  subscribeActiveOrg,
+  subscribeToLiveEvents
+} from "../services/api.js";
 
 export function Navbar({
   activeView,
@@ -38,11 +46,34 @@ export function Navbar({
       }
     };
     checkAgents();
-    const interval = setInterval(checkAgents, 4000);
+
+    // Listen to live SSE events instead of tight polling
+    const unsubSSE = subscribeToLiveEvents((event) => {
+      if (event.type === "agent_connected" || event.type === "agent_disconnected") {
+        checkAgents();
+      }
+    });
+
+    // Refresh on user tab return
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        checkAgents();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // Gentle 60s background sync only when active
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        checkAgents();
+      }
+    }, 60000);
 
     return () => {
       unsubscribe();
       unsubOrg();
+      unsubSSE();
+      document.removeEventListener("visibilitychange", handleVisibility);
       clearInterval(interval);
     };
   }, []);

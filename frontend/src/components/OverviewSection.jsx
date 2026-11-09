@@ -43,14 +43,35 @@ export function OverviewSection({ onNavigateToSection }) {
 
     // Instant real-time reaction via backend SSE event stream
     const unsubscribe = subscribeToLiveEvents((event) => {
-      if (event.type === "agent_connected" || event.type === "agent_disconnected" || event.type === "agent_activity" || event.type === "sync") {
+      if (
+        event.type === "agent_connected" ||
+        event.type === "agent_disconnected" ||
+        event.type === "agent_activity" ||
+        event.type === "observation_created" ||
+        event.type === "sync"
+      ) {
         loadData();
       }
     });
 
-    const interval = setInterval(loadData, 5000);
+    // Refresh when user returns to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadData();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // Gentle 45s background sync only when active
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadData();
+      }
+    }, 45000);
+
     return () => {
       unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibility);
       clearInterval(interval);
     };
   }, []);

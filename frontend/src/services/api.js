@@ -495,12 +495,26 @@ export async function ingestGitHub({
  */
 export async function fetchSystemStats() {
   try {
-    const res = await fetch("/api/v1/stats", { signal: AbortSignal.timeout(4000) });
+    const res = await fetch("/api/v1/stats", {
+      headers: {
+        Authorization: `Bearer ${_currentOrg.id}`,
+      },
+      signal: AbortSignal.timeout(4000)
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return { ok: true, data };
   } catch (err) {
-    return { ok: false, error: err.message };
+    return {
+      ok: false,
+      error: err.message,
+      data: {
+        totalMemories: 0,
+        indexedCount: 0,
+        sourcesBreakdown: {},
+        recentMemories: []
+      }
+    };
   }
 }
 
@@ -647,15 +661,25 @@ export function subscribeToLiveEvents(onEvent) {
     eventSource.addEventListener("agent_disconnected", (event) => {
       try {
         const data = JSON.parse(event.data);
-        onEvent(data);
+        onEvent({ type: "agent_disconnected", ...data });
       } catch {}
     });
+
+    eventSource.addEventListener("observation_created", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        onEvent({ type: "observation_created", ...data });
+      } catch {}
+    });
+
+    eventSource.onerror = () => {
+      // Browser EventSource automatically reconnects; suppress console error spam
+    };
 
     return () => {
       eventSource.close();
     };
   } catch (err) {
-    console.warn("Could not connect to SSE events stream:", err);
     return () => {};
   }
 }

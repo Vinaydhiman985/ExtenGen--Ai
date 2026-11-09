@@ -171,4 +171,51 @@ describe('REST route aliases', () => {
     expect(observations[0].title).toContain('Add webhook signature validation');
     expect(observations[0].metadata.pr_number).toBe(42);
   });
+
+  it('serves real-time system stats via GET /api/v1/stats', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/stats',
+      headers: { authorization: 'Bearer 00000000-0000-0000-0000-000000000001' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const data = res.json();
+    expect(data).toHaveProperty('totalMemories');
+    expect(data).toHaveProperty('indexedCount');
+    expect(data).toHaveProperty('sourcesBreakdown');
+    expect(data).toHaveProperty('recentMemories');
+    expect(Array.isArray(data.recentMemories)).toBe(true);
+  });
+
+  it('manages active agents via GET /api/v1/agents/active and POST /api/v1/agents/simulate', async () => {
+    const activeRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/agents/active',
+    });
+    expect(activeRes.statusCode).toBe(200);
+    const initialAgents = activeRes.json();
+    expect(initialAgents.count).toBeGreaterThanOrEqual(2);
+
+    // Simulate connecting a new agent
+    const simRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/agents/simulate',
+      payload: { action: 'connect', agentName: 'Cursor IDE (Test Suite)' },
+    });
+    expect(simRes.statusCode).toBe(200);
+    const simData = simRes.json();
+    expect(simData.ok).toBe(true);
+    expect(simData.count).toBe(initialAgents.count + 1);
+  });
+
+  it('serves SSE event stream via GET /api/v1/events', async () => {
+    const sseRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/events?closeImmediately=true',
+    });
+    expect(sseRes.statusCode).toBe(200);
+    expect(sseRes.headers['content-type']).toContain('text/event-stream');
+    expect(sseRes.body).toContain('event: sync');
+  });
 });
