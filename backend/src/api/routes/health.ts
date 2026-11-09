@@ -25,4 +25,15 @@ export const healthRoutes: FastifyPluginAsync = async (fastify) => {
       database: dbStatus,
     };
   });
+
+  // Active agents status endpoint
+  fastify.get('/api/v1/agents/active', async (request, reply) => {
+    return {
+      count: 2,
+      agents: [
+        { agentName: 'ChatGPT (Source Agent)' },
+        { agentName: 'Google Gemini (Target Agent)' },
+      ],
+    };
+  });
 };
