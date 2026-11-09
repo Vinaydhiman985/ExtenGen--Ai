@@ -92,6 +92,7 @@ export function ThroughputLineChart() {
         <div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             <span className="dash-badge dash-badge-dark">Telemetry</span>
+            <span className="dash-badge dash-badge-yellow" style={{ fontSize: "11px" }}>Sample Benchmark</span>
             <span className="dash-sidebar-dot green" />
             <span style={{ fontSize: "12px", color: "var(--mut)", fontFamily: "var(--mono)" }}>Fastify + SSE</span>
           </div>
@@ -286,15 +287,46 @@ export function ThroughputLineChart() {
  * 2. Donut Chart: Memory & Chunk Type Breakdown
  * Shows proportion of stored knowledge chunks across categories
  */
-export function MemoryDonutChart({ totalMemories = 42 }) {
+export function MemoryDonutChart({ totalMemories = 0, sourcesBreakdown = {} }) {
   const [activeSlice, setActiveSlice] = useState(null);
 
-  const categories = [
-    { id: "arch", name: "Architecture & Standards", count: Math.round(totalMemories * 0.42) || 18, color: "#141414", pct: 42 },
-    { id: "api", name: "API & Endpoints", count: Math.round(totalMemories * 0.28) || 12, color: "#10b981", pct: 28 },
-    { id: "db", name: "DB & Vector Schemas", count: Math.round(totalMemories * 0.18) || 8, color: "#2563eb", pct: 18 },
-    { id: "sec", name: "Security & RLS Rules", count: Math.max(Math.round(totalMemories * 0.12), 4) || 4, color: "#e9e23a", pct: 12 }
-  ];
+  const hasRealData = totalMemories > 0 && Object.keys(sourcesBreakdown).length > 0;
+
+  let categories = [];
+  if (hasRealData) {
+    const colorPalette = {
+      agent_session: "#141414",
+      github_pr: "#10b981",
+      github_commit: "#2563eb",
+      manual: "#e9e23a",
+      api: "#8b5cf6",
+    };
+    const nameMap = {
+      agent_session: "Agent Sessions (MCP)",
+      github_pr: "GitHub PRs (Merged)",
+      github_commit: "Git Commits",
+      manual: "Manual Notes & Rules",
+      api: "REST API Ingestion",
+    };
+
+    categories = Object.entries(sourcesBreakdown).map(([source, count], idx) => {
+      const pct = Math.round((Number(count) / totalMemories) * 100);
+      return {
+        id: source,
+        name: nameMap[source] || source,
+        count: Number(count),
+        color: colorPalette[source] || ["#141414", "#10b981", "#2563eb", "#e9e23a", "#ec4899"][idx % 5],
+        pct,
+      };
+    });
+  } else {
+    categories = [
+      { id: "arch", name: "Architecture & Standards (Sample)", count: 18, color: "#141414", pct: 42 },
+      { id: "api", name: "API & Endpoints (Sample)", count: 12, color: "#10b981", pct: 28 },
+      { id: "db", name: "DB & Vector Schemas (Sample)", count: 8, color: "#2563eb", pct: 18 },
+      { id: "sec", name: "Security & RLS Rules (Sample)", count: 4, color: "#e9e23a", pct: 12 },
+    ];
+  }
 
   // SVG arc calculation for donut
   const size = 220;
@@ -308,15 +340,23 @@ export function MemoryDonutChart({ totalMemories = 42 }) {
   const activeCategory = activeSlice !== null ? categories[activeSlice] : null;
 
   return (
-    <div className="dash-box" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div className="dash-box" style={{ display: "flex", flexDirection: "column", gap: "16px", opacity: hasRealData ? 1 : 0.90 }}>
       <div className="dash-box-header" style={{ marginBottom: 0 }}>
         <div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <span className="dash-badge dash-badge-dark">Knowledge Distribution</span>
-            <span className="dash-badge dash-badge-white" style={{ fontFamily: "var(--mono)", fontSize: "11px" }}>pgvector</span>
+            <span className={`dash-badge ${hasRealData ? "dash-badge-green" : "dash-badge-yellow"}`}>
+              {hasRealData ? "Live DB Breakdown" : "Example Distribution"}
+            </span>
+            <span className="dash-badge dash-badge-white" style={{ fontFamily: "var(--mono)", fontSize: "11px" }}>
+              {hasRealData ? "PostgreSQL Real-Time" : "Sample Model"}
+            </span>
           </div>
           <h3 style={{ margin: "6px 0 2px" }}>Memory Type Breakdown</h3>
-          <p className="dash-sub">Categorical distribution of knowledge chunks</p>
+          <p className="dash-sub">
+            {hasRealData
+              ? "Live categorical distribution of stored knowledge chunks"
+              : "Sample categorical distribution (Live stats update when memories are created)"}
+          </p>
         </div>
       </div>
 
@@ -469,6 +509,7 @@ export function SimilarityHistogramChart() {
         <div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             <span className="dash-badge dash-badge-dark">Cosine Metric</span>
+            <span className="dash-badge dash-badge-yellow" style={{ fontSize: "11px" }}>Sample Distribution Model</span>
             <span className="dash-badge dash-badge-green">gemini-embedding-001</span>
           </div>
           <h3 style={{ margin: "6px 0 2px" }}>Vector Recall Similarity Distribution</h3>

@@ -115,8 +115,8 @@ export function PlaygroundSection() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "8px", marginTop: "16px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--mut)", alignSelf: "center" }}>Quick Prompts:</span>
+          <div style={{ display: "flex", gap: "8px", marginTop: "16px", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--mut)" }}>Sample Query Prompts:</span>
             {[
               "invoice pagination standard",
               "fastify rate limiter config",
@@ -165,11 +165,18 @@ export function PlaygroundSection() {
             </span>
           </div>
 
-          {results.length === 0 ? (
+          {!hasExecuted ? (
+            <div style={{ padding: "40px", textAlign: "center", background: "var(--bg)", border: "1.5px dashed var(--ink)", borderRadius: "18px" }}>
+              <strong style={{ fontSize: "16px", display: "block" }}>Ready for Live Vector Search</strong>
+              <p className="dash-sub" style={{ marginTop: "6px" }}>
+                Enter an AI agent prompt on the left and click <strong>"Execute Recall Search"</strong> to query real-time pgvector similarity scores from Supabase PostgreSQL.
+              </p>
+            </div>
+          ) : results.length === 0 ? (
             <div style={{ padding: "40px", textAlign: "center", background: "var(--bg)", border: "1.5px dashed var(--ink)", borderRadius: "18px" }}>
               <strong style={{ fontSize: "16px", display: "block" }}>No memories reached threshold {threshold}</strong>
               <p className="dash-sub" style={{ marginTop: "6px" }}>
-                Try lowering the cosine similarity threshold (e.g. 0.35) or capture a new observation in the Memories Hub.
+                Try lowering the cosine similarity threshold (e.g. 0.15) or capture a new observation in the Memories Hub.
               </p>
             </div>
           ) : (

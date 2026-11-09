@@ -89,17 +89,43 @@ export function KnowledgeGapsSection({ onNavigateToMemories }) {
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-red">Knowledge Gaps</span>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <span className="dash-badge dash-badge-yellow">Sample Insights</span>
+            <span className="dash-badge dash-badge-white" style={{ fontSize: "11px", opacity: 0.85 }}>Demo Cluster Model</span>
+          </div>
           <h1>Unanswered Knowledge Gaps</h1>
           <p>Zero-result queries grouped by topic. Identified when AI agents ask questions that return no matching memories in ExtenGen.</p>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "20px", background: "var(--card)", border: "1.5px solid var(--ink)", borderRadius: "20px", padding: "24px" }}>
-        <div><span className="dash-kpi-val">4</span><span className="dash-sub">Active Knowledge Gaps</span></div>
-        <div><span className="dash-kpi-val">47</span><span className="dash-sub">Total Unanswered Queries</span></div>
-        <div><span className="dash-kpi-val">~2.8k</span><span className="dash-sub">Wasted Agent Tokens</span></div>
-        <div><span className="dash-sub">Impact Rating</span><span className="dash-badge dash-badge-yellow" style={{ marginTop: "6px" }}>High Priority</span></div>
+      <div style={{
+        background: "rgba(245, 158, 11, 0.08)",
+        border: "1.5px dashed #d97706",
+        borderRadius: "12px",
+        padding: "12px 18px",
+        marginBottom: "16px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: "10px"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span className="dash-badge dash-badge-yellow" style={{ fontWeight: 700 }}>
+            EXAMPLE / SAMPLE DATASET
+          </span>
+          <span style={{ fontSize: "13px", color: "#92400e" }}>
+            These are illustrative knowledge gap clusters. As team agents make 0-match recall queries, real clusters appear here. Click <strong>"Draft Knowledge Standard"</strong> on any item to save it into real PostgreSQL memory!
+          </span>
+        </div>
+        <span style={{ fontSize: "11px", color: "#b45309", fontFamily: "var(--mono)" }}>Demo Model</span>
+      </div>
+
+      <div style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "20px", background: "var(--card)", border: "1.5px solid var(--ink)", borderRadius: "20px", padding: "24px", opacity: 0.92, display: "grid" }}>
+        <div><span className="dash-kpi-val">4</span><span className="dash-sub">Sample Gaps</span></div>
+        <div><span className="dash-kpi-val">47</span><span className="dash-sub">Sample Unanswered Queries</span></div>
+        <div><span className="dash-kpi-val">~2.8k</span><span className="dash-sub">Saved Agent Tokens</span></div>
+        <div><span className="dash-sub">Priority Rating</span><span className="dash-badge dash-badge-yellow" style={{ marginTop: "6px" }}>High Priority</span></div>
       </div>
 
       {/* GRAPH 4: ZERO-MATCH QUERIES INGESTION TREND */}

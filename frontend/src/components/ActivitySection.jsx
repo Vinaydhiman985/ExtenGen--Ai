@@ -247,6 +247,7 @@ export function ActivitySection() {
     }));
   };
 
+  const isSample = realActivities.length === 0;
   const displayList = realActivities.length > 0 ? realActivities : activities;
   const filtered = displayList.filter(a => {
     if (filterType === "recall") return a.type === "recall";
@@ -254,11 +255,23 @@ export function ActivitySection() {
     return true;
   });
 
+  const recallCount = displayList.filter(a => a.type === "recall").length;
+  const storeCount = displayList.filter(a => a.type === "store").length;
+
   return (
     <div className="dash-section">
       <div className="dash-sec-header">
         <div>
-          <span className="dash-badge dash-badge-green">Real-Time Activity Feed</span>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <span className={`dash-badge ${isSample ? "dash-badge-yellow" : "dash-badge-green"}`}>
+              {isSample ? "Example Telemetry Preview" : "Live Activity Stream"}
+            </span>
+            {isSample && (
+              <span className="dash-badge dash-badge-white" style={{ fontSize: "11px", opacity: 0.85 }}>
+                Sample Data
+              </span>
+            )}
+          </div>
           <h1>Activity Calls & Session Replay</h1>
           <p>Live stream of `store_observation` and `recall_context` events. Click any entry to inspect full Session Replay timelines and score breakdowns.</p>
         </div>
@@ -268,25 +281,50 @@ export function ActivitySection() {
             className={`dash-picker-btn ${filterType === "all" ? "active" : ""}`}
             onClick={() => setFilterType("all")}
           >
-            All Events ({activities.length})
+            All Events ({displayList.length})
           </button>
           <button
             className={`dash-picker-btn ${filterType === "recall" ? "active" : ""}`}
             onClick={() => setFilterType("recall")}
           >
-            Recalls (3)
+            Recalls ({recallCount})
           </button>
           <button
             className={`dash-picker-btn ${filterType === "store" ? "active" : ""}`}
             onClick={() => setFilterType("store")}
           >
-            Ingested Stores (2)
+            Ingested Stores ({storeCount})
           </button>
         </div>
       </div>
 
+      {isSample && (
+        <div style={{
+          background: "rgba(245, 158, 11, 0.08)",
+          border: "1.5px dashed #d97706",
+          borderRadius: "12px",
+          padding: "12px 18px",
+          marginBottom: "16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+          flexWrap: "wrap"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span className="dash-badge dash-badge-yellow" style={{ fontWeight: 700, letterSpacing: "0.5px" }}>
+              EXAMPLE / SAMPLE PREVIEW
+            </span>
+            <span style={{ fontSize: "13px", color: "#92400e" }}>
+              Showing illustrative agent activity traces. Live events will populate here automatically as connected AI agents make tool calls.
+            </span>
+          </div>
+          <span style={{ fontSize: "11px", color: "#b45309", fontFamily: "var(--mono)" }}>Demo Sample Data</span>
+        </div>
+      )}
+
       {/* ACTIVITY TABLE */}
-      <div className="dash-box dash-table-box">
+      <div className="dash-box dash-table-box" style={{ opacity: isSample ? 0.90 : 1 }}>
         <div className="dash-table-wrap">
           <table className="dash-table">
             <thead>
@@ -311,6 +349,11 @@ export function ActivitySection() {
                       <span className={`dash-badge ${item.type === "recall" ? "dash-badge-dark" : "dash-badge-yellow"}`}>
                         {item.type === "recall" ? "recall_context" : "store_observation"}
                       </span>
+                      {isSample && (
+                        <span className="dash-badge dash-badge-white" style={{ fontSize: "10px", marginLeft: "4px", opacity: 0.85 }}>
+                          Example
+                        </span>
+                      )}
                     </td>
                     <td>
                       <strong style={{ fontSize: "14px", color: "#141414" }}>{item.agent}</strong>

@@ -207,7 +207,10 @@ export function OverviewSection({ onNavigateToSection }) {
       {chartView === "telemetry" ? (
         <div className="dash-grid-2">
           <ThroughputLineChart />
-          <MemoryDonutChart totalMemories={stats.totalMemories || 42} />
+          <MemoryDonutChart
+            totalMemories={stats.totalMemories || 0}
+            sourcesBreakdown={stats.sourcesBreakdown || {}}
+          />
         </div>
       ) : (
         <SimilarityHistogramChart />

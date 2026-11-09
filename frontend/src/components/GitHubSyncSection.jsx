@@ -223,7 +223,7 @@ export function GitHubSyncSection({ onNavigateToMemories }) {
           <div style={{ background: "var(--bg)", border: "1.5px solid var(--ink)", borderRadius: "14px", padding: "16px", marginTop: "16px" }}>
             <span className="dash-sub" style={{ textTransform: "uppercase", fontWeight: 700 }}>Webhook Payload URL</span>
             <code className="dash-mono" style={{ display: "block", background: "#141414", color: "#e8e8e8", padding: "10px", borderRadius: "8px", margin: "6px 0 12px", fontSize: "13px" }}>
-              http://localhost:3000/api/v1/webhooks/github
+              http://localhost:3001/api/v1/webhooks/github
             </code>
 
             <span className="dash-sub" style={{ textTransform: "uppercase", fontWeight: 700 }}>Subscribed GitHub Events</span>

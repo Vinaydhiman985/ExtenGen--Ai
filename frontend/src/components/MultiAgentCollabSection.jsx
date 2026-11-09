@@ -190,7 +190,10 @@ export function MultiAgentCollabSection() {
       {/* PRESET SCENARIOS SELECTOR */}
       <div className="dash-box" style={{ marginBottom: "20px", padding: "14px 20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-          <strong style={{ fontSize: "14px" }}>Select Collaboration Scenario:</strong>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <strong style={{ fontSize: "14px" }}>Interactive Scenarios & Presets:</strong>
+            <span className="dash-badge dash-badge-yellow" style={{ fontSize: "10px" }}>Sample Templates</span>
+          </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {PRESET_SCENARIOS.map((s, idx) => (
               <button
