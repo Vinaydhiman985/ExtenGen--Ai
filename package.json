@@ -14,6 +14,7 @@
     "seed": "tsx src/scripts/seed.ts",
     "demo": "tsx src/scripts/demo.ts",
     "chat": "tsx src/scripts/agent_chat.ts",
+    "connect": "tsx src/scripts/connect_chatgpt_gemini.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
