@@ -14,6 +14,7 @@ export function Navbar({
   setActiveView,
   onOpenCommandPalette,
   onOpenOnboarding,
+  onSelectSection,
   mobileMenuOpen,
   setMobileMenuOpen
 }) {
@@ -160,6 +161,17 @@ export function Navbar({
             </div>
           )}
         </div>
+
+        {/* Chrome Extension Shortcut */}
+        <button
+          className="dash-pill dash-pill-white dash-pill-sm"
+          onClick={() => (onSelectSection ? onSelectSection("extension") : onOpenOnboarding())}
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+          title="Open Chrome Extension Bridge setup & live testing"
+        >
+          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+          <span>Chrome Extension</span>
+        </button>
 
         {/* Connect Agent */}
         <button className="dash-pill dash-pill-dark dash-pill-sm" onClick={onOpenOnboarding} style={{ display: "flex", alignItems: "center", gap: "6px" }}>

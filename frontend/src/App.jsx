@@ -12,6 +12,7 @@ import { PlaygroundSection } from "./components/PlaygroundSection";
 import { KnowledgeGapsSection } from "./components/KnowledgeGapsSection";
 import { GitHubSyncSection } from "./components/GitHubSyncSection";
 import { MultiAgentCollabSection } from "./components/MultiAgentCollabSection";
+import { ExtensionBridgeSection } from "./components/ExtensionBridgeSection";
 
 const links = [
   ["How it works", "#how"],
@@ -264,6 +265,7 @@ export default function App() {
         setActiveView={switchView}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        onSelectSection={handleSelectSection}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
       />
@@ -294,6 +296,7 @@ export default function App() {
             <OverviewSection onNavigateToSection={handleSelectSection} />
           )}
           {activeSection === "simulator" && <MultiAgentCollabSection />}
+          {activeSection === "extension" && <ExtensionBridgeSection />}
           {activeSection === "activity" && <ActivitySection />}
           {activeSection === "memories" && (
             <MemoriesSection initialTab={memoriesSubTab} key={memoriesSubTab} />
