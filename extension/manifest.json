@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "ExtenGen — AI Agent Context Bridge",
+  "version": "1.0.0",
+  "description": "Seamlessly connect and handoff active context between ChatGPT and Gemini via ExtenGen shared memory.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://localhost:3001/*",
+    "http://127.0.0.1:3001/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://gemini.google.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "ExtenGen Agent Bridge"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["content_chatgpt.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content_gemini.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

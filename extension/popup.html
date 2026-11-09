@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExtenGen Agent Bridge</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      padding: 16px;
+      background: #141414;
+      color: #ffffff;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2d2d2d;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      background: #10b981;
+      color: #141414;
+    }
+    .status-card {
+      background: #1e1e1e;
+      border: 1px solid #333333;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .status-row:last-child { margin-bottom: 0; }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .dot.online { background: #10b981; box-shadow: 0 0 6px #10b981; }
+    .dot.offline { background: #ef4444; }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid transparent;
+      margin-bottom: 8px;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #10b981; color: #141414; }
+    .btn-secondary { background: #262626; color: #ffffff; border-color: #3e3e3e; }
+    .btn:hover { opacity: 0.9; }
+    .footer {
+      font-size: 11px;
+      color: #888888;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <span>🧠</span>
+      <span>ExtenGen Bridge</span>
+    </div>
+    <span class="badge">v1.0</span>
+  </div>
+
+  <div class="status-card">
+    <div class="status-row">
+      <span style="color: #999;">ExtenGen API:</span>
+      <span id="api-status"><span class="dot offline"></span>Checking...</span>
+    </div>
+    <div class="status-row">
+      <span style="color: #999;">Database:</span>
+      <span style="color: #10b981; font-family: monospace;">Supabase pgvector</span>
+    </div>
+    <div class="status-row">
+      <span style="color: #999;">Target Agent:</span>
+      <span style="font-weight: 600;">Google Gemini</span>
+    </div>
+  </div>
+
+  <a href="https://chatgpt.com" target="_blank" class="btn btn-secondary">
+    Open ChatGPT (Agent 1)
+  </a>
+  <a href="https://gemini.google.com/app" target="_blank" class="btn btn-secondary">
+    Open Gemini (Agent 2)
+  </a>
+  <a href="http://localhost:5174" target="_blank" class="btn btn-primary">
+    Open ExtenGen Dashboard
+  </a>
+
+  <div class="footer">
+    When in ChatGPT, click the green <strong>"Handoff to Gemini"</strong> button!
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

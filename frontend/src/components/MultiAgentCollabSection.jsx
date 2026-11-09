@@ -3,6 +3,16 @@ import { runMultiAgentSimulation } from "../services/api.js";
 
 const PRESET_SCENARIOS = [
   {
+    name: "ChatGPT ➔ Gemini Live Handoff",
+    agent1: "ChatGPT (Agent 1 - Source)",
+    agent2: "Google Gemini (Agent 2 - Target)",
+    ruleTitle: "ChatGPT Session Snapshot: Microservices Architecture",
+    ruleContent: "In my ChatGPT session, we finalized: 1. Authentication via Supabase Auth + JWT Bearer. 2. Microservices communication using Redis BullMQ queues. 3. PostgreSQL 17 with pgvector for shared memories.",
+    ruleTags: ["chatgpt", "gemini", "handoff", "architecture"],
+    query: "What authentication and queue system was decided in my previous ChatGPT session?",
+    expectedMatch: "Supabase Auth + JWT Bearer"
+  },
+  {
     name: "Custom (Your Own Live Input)",
     agent1: "Agent 1 (Architect / Dev)",
     agent2: "Agent 2 (Assistant / Reviewer)",
@@ -127,6 +137,53 @@ export function MultiAgentCollabSection() {
           >
             {isRunning ? "Executing Live Collab..." : "Run Live Cross-Agent Test"}
           </button>
+        </div>
+      </div>
+
+      {/* REAL CHROME EXTENSION BANNER */}
+      <div style={{
+        background: "linear-gradient(90deg, #141414 0%, #1e1e1e 100%)",
+        border: "1.5px solid #10b981",
+        borderRadius: "16px",
+        padding: "16px 20px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: "16px",
+        color: "#ffffff"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid #10b981", display: "grid", placeItems: "center", fontSize: "20px" }}>
+            ⚡
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <strong style={{ fontSize: "15px" }}>Real-Life Chrome Extension Ready</strong>
+              <span className="dash-badge dash-badge-green" style={{ fontSize: "11px" }}>Manifest V3</span>
+            </div>
+            <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#cccccc" }}>
+              Connect real <strong>chatgpt.com</strong> to <strong>gemini.google.com</strong> with a 1-click floating button! Load unpacked from <code>C:\ExtenGen-Ai\extension</code>.
+            </p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <a
+            href="https://chatgpt.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dash-pill dash-pill-white dash-pill-sm"
+          >
+            Open ChatGPT
+          </a>
+          <a
+            href="https://gemini.google.com/app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dash-pill dash-pill-green dash-pill-sm"
+          >
+            Open Gemini
+          </a>
         </div>
       </div>
 
