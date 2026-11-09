@@ -76,7 +76,7 @@ export function Sidebar({ activeSection, setActiveSection, pendingCount, gapsCou
           <line x1="10.88" y1="21.94" x2="15.46" y2="14"></line>
         </svg>
       ),
-      desc: "ChatGPT ↔ Gemini Bridge",
+      desc: "Universal 6-Agent Mesh",
       dot: "green",
       dotTitle: "Extension Ready"
     },
