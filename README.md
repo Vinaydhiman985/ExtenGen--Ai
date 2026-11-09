@@ -1,4 +1,4 @@
-# 🧠 ExtenGen
+# 🧠 ExtenGen 
 
 > **A High-Performance, Multi-Tenant Shared Memory Layer for AI Coding Agents**  
 > *Connecting ephemeral LLM coding sessions into continuous, persistent institutional intelligence via the Model Context Protocol (MCP) and pgvector.*
@@ -13,7 +13,7 @@
 
 ---
 
-## 📑 Table of Contents
+##  Table of Contents
 
 1. [Executive Summary & Core Idea](#-the-idea)
 2. [The Problem & Industry Gap](#-the-problem--industry-gap)
