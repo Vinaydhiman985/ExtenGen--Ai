@@ -1,10 +1,57 @@
 // ExtenGen ChatGPT Content Script — Context Extractor & One-Click Handoff
 
 (function () {
-  console.log("🧠 ExtenGen ChatGPT Agent Bridge loaded.");
+  console.log("[ExtenGen] ChatGPT Agent Bridge initialized.");
+
+  // Inject spinner animation keyframes once
+  if (!document.getElementById("extengen-styles")) {
+    const style = document.createElement("style");
+    style.id = "extengen-styles";
+    style.textContent = `
+      @keyframes extengen-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      #extengen-handoff-btn:hover {
+        background: #1f2937 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35) !important;
+      }
+      #extengen-handoff-btn:active {
+        transform: translateY(0);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const icons = {
+    handoff: `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <path d="M16 3h5v5"/>
+        <path d="m21 3-7 7"/>
+        <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>
+      </svg>
+    `,
+    spinner: `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;animation:extengen-spin 0.8s linear infinite;">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+    `,
+    check: `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    `,
+    alert: `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    `,
+  };
 
   function extractChatGPTConversation() {
-    // Attempt standard ChatGPT message container selectors
     const messageElements = document.querySelectorAll(
       '[data-message-author-role], .text-message, article, .agent-turn'
     );
@@ -18,11 +65,9 @@
     });
 
     if (messages.length > 0) {
-      // Return last 4-6 relevant turns
       return messages.slice(-4).join("\n\n---\n\n");
     }
 
-    // Fallback: grab main body text
     const mainEl = document.querySelector("main");
     if (mainEl) {
       return mainEl.innerText.slice(-2500);
@@ -31,47 +76,60 @@
     return "Active session discussion from ChatGPT.";
   }
 
+  function renderDefaultButton(btn) {
+    btn.innerHTML = `
+      <span style="display:inline-flex;align-items:center;gap:8px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.8);flex-shrink:0;"></span>
+        <span style="letter-spacing:-0.01em;font-weight:600;">ExtenGen</span>
+        <span style="opacity:0.4;">|</span>
+        ${icons.handoff}
+        <span style="letter-spacing:-0.01em;">Handoff to Gemini</span>
+      </span>
+    `;
+    btn.style.background = "#0f172a";
+    btn.style.color = "#ffffff";
+    btn.style.border = "1px solid rgba(16, 185, 129, 0.4)";
+    btn.style.opacity = "1";
+    btn.disabled = false;
+  }
+
   function injectHandoffButton() {
     if (document.getElementById("extengen-handoff-btn")) return;
 
     const btn = document.createElement("button");
     btn.id = "extengen-handoff-btn";
-    btn.innerHTML = `
-      <span style="display:inline-flex;align-items:center;gap:6px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;"></span>
-        <strong>ExtenGen:</strong> Handoff to Gemini
-      </span>
-    `;
 
-    // Styling: Sleek, developer-grade floating button
     Object.assign(btn.style, {
       position: "fixed",
       bottom: "24px",
       right: "24px",
       zIndex: "999999",
-      background: "#141414",
-      color: "#ffffff",
-      border: "1.5px solid #10b981",
-      borderRadius: "999px",
       padding: "10px 18px",
+      borderRadius: "999px",
       fontSize: "13px",
-      fontFamily: "system-ui, -apple-system, sans-serif",
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       cursor: "pointer",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-      transition: "transform 0.15s, background 0.15s",
+      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+      transition: "transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
+      backdropFilter: "blur(8px)",
+      userSelect: "none",
     });
 
-    btn.onmouseover = () => (btn.style.transform = "translateY(-2px)");
-    btn.onmouseout = () => (btn.style.transform = "translateY(0)");
+    renderDefaultButton(btn);
 
     btn.onclick = async () => {
-      btn.innerText = "⏳ Syncing to ExtenGen...";
-      btn.style.opacity = "0.7";
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span style="display:inline-flex;align-items:center;gap:8px;">
+          ${icons.spinner}
+          <span>Syncing Context to Vector Store...</span>
+        </span>
+      `;
+      btn.style.opacity = "0.85";
 
       try {
         const conversationContext = extractChatGPTConversation();
 
-        // 1. Send to ExtenGen Fastify Backend (creates 768d vector in Supabase)
         const response = await fetch("http://localhost:3001/api/v1/handoff", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -86,7 +144,6 @@
 
         const data = await response.json();
 
-        // 2. Save in Chrome storage for the Gemini content script to pick up
         if (chrome?.storage?.local) {
           await chrome.storage.local.set({
             extengen_pending_handoff: {
@@ -97,30 +154,32 @@
           });
         }
 
-        btn.innerHTML = "✅ Context Saved! Opening Gemini...";
-        btn.style.background = "#10b981";
-        btn.style.color = "#ffffff";
+        btn.innerHTML = `
+          <span style="display:inline-flex;align-items:center;gap:8px;">
+            ${icons.check}
+            <span>Context Linked · Launching Gemini</span>
+          </span>
+        `;
+        btn.style.background = "#065f46";
+        btn.style.borderColor = "#10b981";
 
-        // 3. Open Gemini in a new tab
         setTimeout(() => {
           window.open("https://gemini.google.com/app", "_blank");
-          btn.innerHTML = `
-            <span style="display:inline-flex;align-items:center;gap:6px;">
-              <span style="width:8px;height:8px;border-radius:50%;background:#10b981;"></span>
-              <strong>ExtenGen:</strong> Handoff to Gemini
-            </span>
-          `;
-          btn.style.background = "#141414";
-          btn.style.opacity = "1";
-        }, 1200);
+          renderDefaultButton(btn);
+        }, 1100);
       } catch (err) {
-        console.error("ExtenGen Handoff Error:", err);
-        btn.innerHTML = "⚠️ ExtenGen Server Offline (Start npm run dev)";
-        btn.style.background = "#c93b3b";
+        console.error("[ExtenGen] Handoff Error:", err);
+        btn.innerHTML = `
+          <span style="display:inline-flex;align-items:center;gap:8px;">
+            ${icons.alert}
+            <span>Server Offline · Check Port 3001</span>
+          </span>
+        `;
+        btn.style.background = "#7f1d1d";
+        btn.style.borderColor = "#ef4444";
+
         setTimeout(() => {
-          btn.innerHTML = "ExtenGen: Handoff to Gemini";
-          btn.style.background = "#141414";
-          btn.style.opacity = "1";
+          renderDefaultButton(btn);
         }, 3500);
       }
     };
@@ -128,7 +187,5 @@
     document.body.appendChild(btn);
   }
 
-  // Periodic check to inject button when page loads or URL changes
   setInterval(injectHandoffButton, 1500);
 })();
-

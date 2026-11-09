@@ -199,23 +199,31 @@ export function ExtensionBridgeSection() {
                 onClick={handleSimulateHandoff}
                 disabled={isSyncing}
                 style={{
-                  background: "#141414",
+                  background: "#0f172a",
                   color: "#fff",
-                  border: "1.5px solid #10b981",
+                  border: "1px solid rgba(16, 185, 129, 0.4)",
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px"
+                  gap: "8px"
                 }}
               >
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981" }} />
-                <span>{isSyncing ? "Saving to Vector DB..." : "⚡ ExtenGen: Handoff to Gemini"}</span>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px rgba(16, 185, 129, 0.8)" }} />
+                <span>{isSyncing ? "Saving to Vector DB..." : "ExtenGen | Handoff to Gemini"}</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 3h5v5"/>
+                  <path d="m21 3-7 7"/>
+                  <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>
+                </svg>
               </button>
             </div>
           </div>
 
           {/* ARROW */}
-          <div style={{ textAlign: "center", color: syncDone ? "#10b981" : "#94a3b8", fontWeight: "bold", fontSize: "20px" }}>
-            ➔
+          <div style={{ textAlign: "center", color: syncDone ? "#10b981" : "#94a3b8", display: "flex", justifyContent: "center" }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
           </div>
 
           {/* STEP 2: GEMINI RECEIVER SIMULATOR */}
@@ -245,12 +253,12 @@ export function ExtensionBridgeSection() {
                   <code>{injectedResult.handoffPrompt}</code>
                 </pre>
                 <div style={{ marginTop: "10px", fontSize: "12px", color: "#166534", fontWeight: 600 }}>
-                  ✓ Stored in Supabase (Vector 768d) | Ready for Gemini in 1-Click!
+                  Stored in Supabase (Vector 768d) · Ready for Gemini with zero context loss
                 </div>
               </div>
             ) : (
               <div style={{ padding: "30px 10px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>
-                Click <strong>"⚡ ExtenGen: Handoff to Gemini"</strong> on the left to see the prompt injection preview.
+                Click <strong>"ExtenGen | Handoff to Gemini"</strong> on the left to see the prompt injection preview.
               </div>
             )}
           </div>
@@ -259,3 +267,4 @@ export function ExtensionBridgeSection() {
     </div>
   );
 }
+

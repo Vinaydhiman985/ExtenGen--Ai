@@ -122,8 +122,8 @@ export function OnboardingModal({ isOpen, onClose }) {
 // 3. Click "Load unpacked" and select:
 C:\\ExtenGen-Ai\\extension
 
-// Now when you chat on https://chatgpt.com, click the floating green button:
-// [ ⚡ ExtenGen: Handoff to Gemini ]
+// Now when you chat on https://chatgpt.com, click the floating pill button:
+// [ ExtenGen | Handoff to Gemini ]
 // ExtenGen automatically embeds your session & opens Gemini with context pre-injected!`,
 
     cursor: `// Cursor IDE Setup (.cursor/mcp.json):
@@ -183,17 +183,27 @@ claude mcp add extengen ${mcpLink}`
         <div style={{ display: "flex", gap: "8px", background: "#f1f5f9", padding: "4px", borderRadius: "999px", marginBottom: "16px" }}>
           <button
             className={`dash-pill ${modalMode === "bridge" ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
-            style={{ flex: 1, justifyContent: "center" }}
+            style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: "6px" }}
             onClick={() => setModalMode("bridge")}
           >
-            ⚡ Live 1-Click Bridge (ChatGPT ➔ Gemini)
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 3h5v5"/>
+              <path d="m21 3-7 7"/>
+              <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>
+            </svg>
+            <span>Live Agent Bridge (ChatGPT ➔ Gemini)</span>
           </button>
           <button
             className={`dash-pill ${modalMode === "configs" ? "dash-pill-dark" : "dash-pill-white"} dash-pill-sm`}
-            style={{ flex: 1, justifyContent: "center" }}
+            style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: "6px" }}
             onClick={() => setModalMode("configs")}
           >
-            🧩 Chrome Extension & IDE Setup
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="4"/>
+              <line x1="21.17" y1="8" x2="12" y2="8"/>
+            </svg>
+            <span>Extension & IDE Configurations</span>
           </button>
         </div>
 
@@ -242,11 +252,28 @@ claude mcp add extengen ${mcpLink}`
                 }}
               >
                 {isBridging ? (
-                  <span>⏳ Vectorizing & Connecting to Gemini...</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "extengen-spin 0.8s linear infinite" }}>
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    <span>Vectorizing & Connecting to Gemini...</span>
+                  </span>
                 ) : bridgeStep === 3 ? (
-                  <span>✅ Re-Connect & Sync New Context</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Re-Connect & Sync New Context</span>
+                  </span>
                 ) : (
-                  <span>⚡ 1-Click Connect & Bridge to Gemini</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 3h5v5"/>
+                      <path d="m21 3-7 7"/>
+                      <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>
+                    </svg>
+                    <span>Connect & Bridge Context to Gemini</span>
+                  </span>
                 )}
               </button>
             </div>
