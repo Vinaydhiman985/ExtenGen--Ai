@@ -9,7 +9,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17%20%7C%20pgvector-336791.svg?logo=postgresql)](https://github.com/pgvector/pgvector)
 [![Gemini](https://img.shields.io/badge/Gemini-Embeddings%20768d-4285F4.svg?logo=google)](https://aistudio.google.com/)
 [![Fastify](https://img.shields.io/badge/Fastify-5.2-black.svg?logo=fastify)](https://www.fastify.io/)
-[![Tests](https://img.shields.io/badge/Tests-32%20Passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-37%20Passing-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -108,3 +108,23 @@ Open `http://localhost:5173` to access:
 ## 📄 License
 
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+asli user is system k okaise todenge , 5 tareeke btao har ek ka test likho

@@ -82,52 +82,57 @@ export async function storeObservation(
   };
 
   if (pool) {
-    await withTenantContext(tenant, async (client) => {
-      const result = await client.query(
-        `INSERT INTO observations (id, org_id, user_id, source, title, content, metadata, status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id, org_id, user_id, source, title, content, metadata, embedding, status, created_at, updated_at,
-                   superseded_by, superseded_at, supersession_reason`,
-        [
-          id,
-          tenant.orgId,
-          tenant.userId || null,
-          source,
-          input.title || null,
-          input.content.trim(),
-          JSON.stringify(metadata),
-          'pending_embedding',
-          now,
-          now,
-        ]
-      );
-      observation = result.rows[0];
-
-      if (input.supersedes?.length) {
-        const superseded = await client.query(
-          `UPDATE observations
-           SET superseded_by = $1,
-               superseded_at = now(),
-               supersession_reason = conflict.reason,
-               updated_at = now()
-           FROM unnest($2::uuid[], $3::text[]) AS conflict(id, reason)
-           WHERE observations.id = conflict.id
-             AND observations.org_id = $4
-             AND observations.superseded_by IS NULL
-           RETURNING observations.id`,
+    try {
+      await withTenantContext(tenant, async (client) => {
+        const result = await client.query(
+          `INSERT INTO observations (id, org_id, user_id, source, title, content, metadata, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id, org_id, user_id, source, title, content, metadata, embedding, status, created_at, updated_at,
+                     superseded_by, superseded_at, supersession_reason`,
           [
             id,
-            input.supersedes.map(conflict => conflict.id),
-            input.supersedes.map(conflict => conflict.reason),
             tenant.orgId,
+            tenant.userId || null,
+            source,
+            input.title || null,
+            input.content.trim(),
+            JSON.stringify(metadata),
+            'pending_embedding',
+            now,
+            now,
           ]
         );
+        observation = result.rows[0];
 
-        if (superseded.rowCount !== input.supersedes.length) {
-          throw new Error('One or more conflicting observations are no longer active; review the conflict again.');
+        if (input.supersedes?.length) {
+          const superseded = await client.query(
+            `UPDATE observations
+             SET superseded_by = $1,
+                 superseded_at = now(),
+                 supersession_reason = conflict.reason,
+                 updated_at = now()
+             FROM unnest($2::uuid[], $3::text[]) AS conflict(id, reason)
+             WHERE observations.id = conflict.id
+               AND observations.org_id = $4
+               AND observations.superseded_by IS NULL
+             RETURNING observations.id`,
+            [
+              id,
+              input.supersedes.map(conflict => conflict.id),
+              input.supersedes.map(conflict => conflict.reason),
+              tenant.orgId,
+            ]
+          );
+
+          if (superseded.rowCount !== input.supersedes.length) {
+            throw new Error('One or more conflicting observations are no longer active; review the conflict again.');
+          }
         }
-      }
-    });
+      });
+    } catch (dbErr: any) {
+      console.warn('⚠️ Supabase connection dropped, saving to in-memory store:', dbErr.message);
+      memoryStore.set(id, observation);
+    }
   } else {
     memoryStore.set(id, observation);
     for (const conflict of input.supersedes || []) {
@@ -225,47 +230,53 @@ export async function recallContext(
   let matches: ScoredObservation[] = [];
 
   if (pool) {
-    await withTenantContext(tenant, async (client) => {
-      const vectorLiteral = `[${queryEmbedding.join(',')}]`;
-      
-      let sql = `
-        SELECT id, org_id, user_id, source, title, content, metadata, created_at, updated_at,
-               superseded_by, superseded_at, supersession_reason,
-               (1 - (embedding <=> $1::vector)) AS similarity
-        FROM observations
-        WHERE org_id = $2
-          AND embedding IS NOT NULL
-          AND status = 'indexed'
-          AND superseded_by IS NULL
-          AND (1 - (embedding <=> $1::vector)) >= $3
-      `;
-      const params: (string | number | string[])[] = [vectorLiteral, tenant.orgId, similarityThreshold];
+    try {
+      await withTenantContext(tenant, async (client) => {
+        const vectorLiteral = `[${queryEmbedding.join(',')}]`;
+        
+        let sql = `
+          SELECT id, org_id, user_id, source, title, content, metadata, created_at, updated_at,
+                 superseded_by, superseded_at, supersession_reason,
+                 (1 - (embedding <=> $1::vector)) AS similarity
+          FROM observations
+          WHERE org_id = $2
+            AND embedding IS NOT NULL
+            AND status = 'indexed'
+            AND superseded_by IS NULL
+            AND (1 - (embedding <=> $1::vector)) >= $3
+        `;
+        const params: (string | number | string[])[] = [vectorLiteral, tenant.orgId, similarityThreshold];
 
-      if (sources && sources.length > 0) {
-        params.push(sources);
-        sql += ` AND source = ANY($${params.length})`;
-      }
+        if (sources && sources.length > 0) {
+          params.push(sources);
+          sql += ` AND source = ANY($${params.length})`;
+        }
 
-      if (tags && tags.length > 0) {
-        params.push(tags);
-        sql += ` AND (metadata->'tags' IS NOT NULL AND metadata->'tags' ?| $${params.length})`;
-      }
+        if (tags && tags.length > 0) {
+          params.push(tags);
+          sql += ` AND (metadata->'tags' IS NOT NULL AND metadata->'tags' ?| $${params.length})`;
+        }
 
-      params.push(recencyWeight);
-      const recencyWeightParam = params.length;
-      sql += ` ORDER BY
-        (1 - (embedding <=> $1::vector))
-        * EXP(-$${recencyWeightParam}::double precision * GREATEST(0.0, EXTRACT(EPOCH FROM (now() - created_at)) / 86400.0)::double precision) DESC
-        LIMIT $${params.length + 1}`;
-      params.push(limit);
+        params.push(recencyWeight);
+        const recencyWeightParam = params.length;
+        sql += ` ORDER BY
+          (1 - (embedding <=> $1::vector))
+          * EXP(-$${recencyWeightParam}::double precision * GREATEST(0.0, EXTRACT(EPOCH FROM (now() - created_at)) / 86400.0)::double precision) DESC
+          LIMIT $${params.length + 1}`;
+        params.push(limit);
 
-      const result = await client.query(sql, params);
-      matches = result.rows.map(row => ({
-        ...row,
-        similarity: parseFloat(row.similarity),
-      }));
-    });
-  } else {
+        const result = await client.query(sql, params);
+        matches = result.rows.map(row => ({
+          ...row,
+          similarity: parseFloat(row.similarity),
+        }));
+      });
+    } catch (err: any) {
+      console.warn('⚠️ Supabase recall query failed, falling back to memory store:', err.message);
+    }
+  }
+
+  if (matches.length === 0) {
     // In-memory vector similarity search
     const allOrgObservations = Array.from(memoryStore.values()).filter(
       obs => obs.org_id === tenant.orgId

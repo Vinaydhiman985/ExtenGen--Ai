@@ -28,9 +28,10 @@ export function getDbPool(): pg.Pool | null {
           || env.NODE_ENV === 'production')
           ? { rejectUnauthorized: false }
           : undefined,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      max: 10,
+      idleTimeoutMillis: 15000,
+      connectionTimeoutMillis: 15000,
+      keepAlive: true,
     });
 
     pool.on('connect', async (client) => {
@@ -57,14 +58,25 @@ export function getDbPool(): pg.Pool | null {
  */
 export async function withTenantContext<T>(
   context: TenantContext,
-  fn: (client: pg.PoolClient) => Promise<T>
+  fn: (client: pg.PoolClient) => Promise<T>,
+  retries = 2
 ): Promise<T> {
   const currentPool = getDbPool();
   if (!currentPool) {
     throw new Error('Database pool not initialized. Set DATABASE_URL in environment.');
   }
 
-  const client = await currentPool.connect();
+  let client: pg.PoolClient;
+  try {
+    client = await currentPool.connect();
+  } catch (err: any) {
+    if (retries > 0) {
+      console.warn('⚠️ Retrying database connection after dropped pool socket...');
+      return withTenantContext(context, fn, retries - 1);
+    }
+    throw err;
+  }
+
   try {
     await client.query('BEGIN');
 
@@ -83,8 +95,12 @@ export async function withTenantContext<T>(
     const result = await fn(client);
     await client.query('COMMIT');
     return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
+  } catch (error: any) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (retries > 0 && (error.message?.includes('Connection terminated') || error.message?.includes('timeout') || error.code === 'ECONNRESET')) {
+      console.warn('⚠️ Retrying tenant transaction after connection drop:', error.message);
+      return withTenantContext(context, fn, retries - 1);
+    }
     throw error;
   } finally {
     client.release();
