@@ -111,6 +111,18 @@
     document.head.appendChild(style);
   }
 
+  async function getApiBaseUrl() {
+    return new Promise((resolve) => {
+      if (chrome?.storage?.local) {
+        chrome.storage.local.get(["extengen_api_url"], (data) => {
+          resolve(data?.extengen_api_url?.replace(/\/$/, "") || "http://localhost:3001");
+        });
+      } else {
+        resolve("http://localhost:3001");
+      }
+    });
+  }
+
   // ============================================================
   // PART 1: CONVERSATION SCRAPER FOR CURRENT PLATFORM
   // ============================================================
@@ -408,18 +420,37 @@ Please acknowledge this past context and proceed with the task:`;
 
       try {
         const textContext = extractConversation();
+        const apiBase = await getApiBaseUrl();
 
-        // 1. Post to ExtenGen Fastify backend on port 3001
-        const response = await fetch("http://localhost:3001/api/v1/handoff", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fromAgent: currentPlatform.name,
-            toAgent: target.name,
-            title: `${currentPlatform.name} Session Handoff`,
-            content: textContext,
-          }),
-        });
+        // 1. Post to ExtenGen backend (Cloud Vercel URL or local port 3001)
+        let response;
+        try {
+          response = await fetch(`${apiBase}/api/v1/handoff`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fromAgent: currentPlatform.name,
+              toAgent: target.name,
+              title: `${currentPlatform.name} Session Handoff`,
+              content: textContext,
+            }),
+          });
+        } catch (initialErr) {
+          if (apiBase !== "http://localhost:3001") {
+            response = await fetch("http://localhost:3001/api/v1/handoff", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fromAgent: currentPlatform.name,
+                toAgent: target.name,
+                title: `${currentPlatform.name} Session Handoff`,
+                content: textContext,
+              }),
+            });
+          } else {
+            throw initialErr;
+          }
+        }
 
         const data = await response.json();
         console.log("[ExtenGen] Handoff saved:", data);

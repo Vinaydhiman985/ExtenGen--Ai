@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 340px;
+      width: 350px;
       padding: 16px;
       background: #09090b;
       color: #fafafa;
@@ -67,6 +67,58 @@
     }
     .dot.online { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.8); }
     .dot.offline { background: #ef4444; }
+    .endpoint-card {
+      background: #121214;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .endpoint-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+    .endpoint-header span {
+      color: #a1a1aa;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .endpoint-input-row {
+      display: flex;
+      gap: 6px;
+    }
+    .endpoint-input {
+      flex: 1;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 6px;
+      color: #f4f4f5;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      outline: none;
+    }
+    .endpoint-input:focus {
+      border-color: #10b981;
+    }
+    .btn-save {
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-save:hover {
+      background: #059669;
+    }
     .section-title {
       font-size: 11px;
       text-transform: uppercase;
@@ -103,7 +155,7 @@
     .mesh-item-left {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .btn-dashboard {
       display: flex;
@@ -111,12 +163,14 @@
       justify-content: center;
       gap: 8px;
       width: 100%;
-      padding: 10px;
+      padding: 9px;
       border-radius: 8px;
-      font-size: 12.5px;
-      font-weight: 600;
       background: #10b981;
-      color: #09090b;
+      color: #ffffff;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
       text-decoration: none;
       transition: background 0.15s ease;
     }
@@ -156,12 +210,24 @@
     <div class="status-row">
       <span class="status-label">Memory Hub:</span>
       <span id="api-status" style="font-family: ui-monospace, monospace;">
-        <span class="dot offline"></span>Checking port 3001...
+        <span class="dot offline"></span>Checking status...
       </span>
     </div>
     <div class="status-row">
       <span class="status-label">Vector Storage:</span>
       <span style="color: #10b981; font-family: ui-monospace, monospace;">Supabase (768d MRL)</span>
+    </div>
+  </div>
+
+  <!-- CLOUD VERCEL / LOCAL ENDPOINT SWITCHER -->
+  <div class="endpoint-card">
+    <div class="endpoint-header">
+      <span>Backend Server URL</span>
+      <span id="endpoint-tag" class="badge">Auto</span>
+    </div>
+    <div class="endpoint-input-row">
+      <input id="api-url-input" class="endpoint-input" type="text" placeholder="http://localhost:3001 or https://*.vercel.app" />
+      <button id="save-endpoint-btn" class="btn-save">Save</button>
     </div>
   </div>
 
@@ -217,7 +283,7 @@
     </a>
   </div>
 
-  <a href="http://localhost:5174" target="_blank" class="btn-dashboard">
+  <a id="btn-open-dashboard" href="http://localhost:5174" target="_blank" class="btn-dashboard">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="3" width="7" height="7"/>
       <rect x="14" y="3" width="7" height="7"/>
@@ -228,7 +294,7 @@
   </a>
 
   <div class="footer">
-    Click <strong>"ExtenGen | Handoff"</strong> on any AI page to transfer memory to any other model instantly.
+    Works 24/7 on Vercel Cloud and Localhost. Click <strong>"Hand Off"</strong> on any AI page to transfer memory instantly.
   </div>
 
   <script src="popup.js"></script>
