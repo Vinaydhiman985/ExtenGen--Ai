@@ -85,7 +85,7 @@ export function ExtensionBridgeSection() {
             <span className="dash-badge dash-badge-dark">Manifest V3</span>
             <span className="dash-sidebar-dot green" />
             <span style={{ fontSize: "12px", color: "var(--mut)", fontFamily: "var(--mono)" }}>
-              {backendLive ? "Fastify Port 3001 Live" : "Fastify Offline"}
+              {backendLive ? (typeof window !== "undefined" && window.location.hostname.includes("vercel") ? "Render Cloud Live" : "Fastify Backend Live") : "Backend Offline"}
             </span>
           </div>
           <h1>Universal Multi-Agent Browser Extension</h1>

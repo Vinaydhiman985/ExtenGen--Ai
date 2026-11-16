@@ -7,18 +7,26 @@
   "rewrites": [
     {
       "source": "/health",
-      "destination": "/api/index.js"
+      "destination": "https://extengen-backend.onrender.com/health"
     },
     {
       "source": "/openapi.json",
-      "destination": "/api/index.js"
+      "destination": "https://extengen-backend.onrender.com/openapi.json"
+    },
+    {
+      "source": "/sse",
+      "destination": "https://extengen-backend.onrender.com/sse"
+    },
+    {
+      "source": "/messages",
+      "destination": "https://extengen-backend.onrender.com/messages"
     },
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "destination": "https://extengen-backend.onrender.com/api/$1"
     },
     {
-      "source": "/((?!api/|health|openapi.json).*)",
+      "source": "/((?!api/|health|openapi.json|sse|messages).*)",
       "destination": "/index.html"
     }
   ]

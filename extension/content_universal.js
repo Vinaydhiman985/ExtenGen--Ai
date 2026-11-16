@@ -115,10 +115,10 @@
     return new Promise((resolve) => {
       if (chrome?.storage?.local) {
         chrome.storage.local.get(["extengen_api_url"], (data) => {
-          resolve(data?.extengen_api_url?.replace(/\/$/, "") || "http://localhost:3001");
+          resolve(data?.extengen_api_url?.replace(/\/$/, "") || "https://extengen-backend.onrender.com");
         });
       } else {
-        resolve("http://localhost:3001");
+        resolve("https://extengen-backend.onrender.com");
       }
     });
   }

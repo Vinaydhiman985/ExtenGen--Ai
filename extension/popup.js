@@ -1,3 +1,4 @@
+const DEFAULT_CLOUD = "https://extengen-backend.onrender.com";
 const DEFAULT_LOCAL = "http://localhost:3001";
 const DEFAULT_DASHBOARD = "http://localhost:5174";
 
@@ -5,10 +6,10 @@ async function getStoredEndpoint() {
   return new Promise((resolve) => {
     if (chrome?.storage?.local) {
       chrome.storage.local.get(["extengen_api_url"], (data) => {
-        resolve(data?.extengen_api_url || DEFAULT_LOCAL);
+        resolve(data?.extengen_api_url || DEFAULT_CLOUD);
       });
     } else {
-      resolve(DEFAULT_LOCAL);
+      resolve(DEFAULT_CLOUD);
     }
   });
 }

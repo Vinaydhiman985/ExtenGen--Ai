@@ -11,6 +11,11 @@
  * when the backend server is unreachable.
  */
 
+// API Base URL (empty for relative proxy on Vercel / Vite, or custom Render cloud URL)
+export const API_BASE_URL = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL)
+  ? import.meta.env.VITE_API_URL.replace(/\/$/, "")
+  : "";
+
 // Initial Mock Memories Dataset for Demo Mode fallback
 export const MOCK_MEMORIES = [
   {
@@ -279,7 +284,7 @@ function notifyStatus(status) {
  */
 export async function checkHealth() {
   try {
-    const res = await fetch("/health", { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${API_BASE_URL}/health`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       const data = await res.json();
       notifyStatus({ isLive: true, error: null });
@@ -302,7 +307,7 @@ export async function fetchObservations({ limit = 50, source } = {}) {
   if (source) queryParams.set("source", source);
 
   try {
-    const res = await fetch(`/api/v1/observations?${queryParams.toString()}`, {
+    const res = await fetch(`${API_BASE_URL}/api/v1/observations?${queryParams.toString()}`, {
       headers: {
         Authorization: `Bearer ${_currentOrg.id}`,
       },
@@ -351,7 +356,7 @@ export async function createObservation({
   immediateEmbed = true
 }) {
   try {
-    const res = await fetch("/api/v1/observations", {
+    const res = await fetch(`${API_BASE_URL}/api/v1/observations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -399,7 +404,7 @@ export async function recallContext({
   tags
 }) {
   try {
-    const res = await fetch("/api/v1/context/recall", {
+    const res = await fetch(`${API_BASE_URL}/api/v1/context/recall`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -458,7 +463,7 @@ export async function ingestGitHub({
   limit = 10
 }) {
   try {
-    const res = await fetch("/api/v1/ingest/github", {
+    const res = await fetch(`${API_BASE_URL}/api/v1/ingest/github`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo, token: token || undefined, limit }),
@@ -495,7 +500,7 @@ export async function ingestGitHub({
  */
 export async function fetchSystemStats() {
   try {
-    const res = await fetch("/api/v1/stats", {
+    const res = await fetch(`${API_BASE_URL}/api/v1/stats`, {
       headers: {
         Authorization: `Bearer ${_currentOrg.id}`,
       },
@@ -523,7 +528,7 @@ export async function fetchSystemStats() {
  */
 export async function fetchActiveAgents() {
   try {
-    const res = await fetch("/api/v1/agents/active", { signal: AbortSignal.timeout(4000) });
+    const res = await fetch(`${API_BASE_URL}/api/v1/agents/active`, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return { ok: true, data };
@@ -537,7 +542,7 @@ export async function fetchActiveAgents() {
  */
 export async function simulateAgentConnection(action = "connect", agentName = "Claude Code (Live CLI)") {
   try {
-    const res = await fetch("/api/v1/agents/simulate", {
+    const res = await fetch(`${API_BASE_URL}/api/v1/agents/simulate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, agentName }),
@@ -565,7 +570,7 @@ export async function runMultiAgentSimulation(options = {}) {
 
   try {
     // Step 1: Agent A stores
-    const storeRes = await fetch("/api/v1/observations", {
+    const storeRes = await fetch(`${API_BASE_URL}/api/v1/observations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -588,7 +593,7 @@ export async function runMultiAgentSimulation(options = {}) {
     if (!storeRes.ok) throw new Error(storeData.error || "Agent A store failed");
 
     // Step 2: Agent B recalls
-    const recallRes = await fetch("/api/v1/context/recall", {
+    const recallRes = await fetch(`${API_BASE_URL}/api/v1/context/recall`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -635,7 +640,7 @@ export async function runMultiAgentSimulation(options = {}) {
  */
 export function subscribeToLiveEvents(onEvent) {
   try {
-    const eventSource = new EventSource("/api/v1/events");
+    const eventSource = new EventSource(`${API_BASE_URL}/api/v1/events`);
 
     eventSource.addEventListener("sync", (event) => {
       try {

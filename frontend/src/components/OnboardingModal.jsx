@@ -85,8 +85,9 @@ export function OnboardingModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const currentHost = "127.0.0.1:3001";
-  const mcpLink = `http://${currentHost}/sse`;
+  const isCloud = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  const currentHost = isCloud ? "extengen-backend.onrender.com" : "127.0.0.1:3001";
+  const mcpLink = isCloud ? `https://${currentHost}/sse` : `http://${currentHost}/sse`;
 
   const sourceAgent = MESH_AGENTS.find((a) => a.id === sourceAgentId) || MESH_AGENTS[0];
   const targetAgent = MESH_AGENTS.find((a) => a.id === targetAgentId) || MESH_AGENTS[1];
@@ -556,7 +557,7 @@ claude mcp add extengen ${mcpLink}`,
         {/* FOOTER */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "18px", borderTop: "1px solid #eee", paddingTop: "12px" }}>
           <span style={{ fontSize: "12px", color: "#666" }}>
-            Backend: <strong>http://localhost:3001</strong> | Tenant RLS: <strong>Personal Workspace</strong>
+            Backend: <strong>{isCloud ? "https://extengen-backend.onrender.com" : "http://localhost:3001"}</strong> | Tenant RLS: <strong>Personal Workspace</strong>
           </span>
           <button className="dash-pill dash-pill-dark" onClick={onClose} style={{ minWidth: "100px", justifyContent: "center" }}>
             Done
