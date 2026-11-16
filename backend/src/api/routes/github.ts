@@ -44,7 +44,7 @@ export const githubRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    payload.pipe(capture);
+    (payload as any).pipe(capture);
     done(null, capture);
   });
 
