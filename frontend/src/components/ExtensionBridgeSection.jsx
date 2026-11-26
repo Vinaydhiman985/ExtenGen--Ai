@@ -115,16 +115,30 @@ export function ExtensionBridgeSection() {
       <div className="dash-box" style={{ background: "linear-gradient(180deg, #fafafa 0%, #ffffff 100%)", border: "1.5px solid #141414", marginBottom: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
           <div>
-            <h3 style={{ margin: "0 0 4px", fontSize: "18px" }}>Install in Google Chrome (15 Seconds)</h3>
-            <p className="dash-sub">Load the unpacked extension folder to activate the floating handoff button across all 6 AI sites</p>
+            <h3 style={{ margin: "0 0 4px", fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <img src="/icons/icon-32.png" width="22" height="22" style={{ borderRadius: "5px" }} alt="ExtenGen" />
+              <span>Install in Browser (Any Device)</span>
+            </h3>
+            <p className="dash-sub">Download the extension package or load unpacked to activate the memory bridge across ChatGPT, Claude, Gemini, DeepSeek, Copilot & Perplexity</p>
           </div>
-          <button
-            className="dash-pill dash-pill-dark"
-            onClick={handleCopyPath}
-            style={{ minWidth: "160px", justifyContent: "center" }}
-          >
-            {copiedPath ? "Path Copied!" : "Copy Folder Path"}
-          </button>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <a
+              href="/extengen-extension.zip"
+              download="extengen-extension.zip"
+              className="dash-pill"
+              style={{ minWidth: "170px", justifyContent: "center", textDecoration: "none", color: "#ffffff", background: "#10b981", border: "1px solid #059669", display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 600 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Download (.zip)</span>
+            </a>
+            <button
+              className="dash-pill dash-pill-dark"
+              onClick={handleCopyPath}
+              style={{ minWidth: "140px", justifyContent: "center" }}
+            >
+              {copiedPath ? "Path Copied!" : "Copy Local Path"}
+            </button>
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
@@ -157,10 +171,10 @@ export function ExtensionBridgeSection() {
               <strong style={{ fontSize: "14px" }}>Click Load Unpacked</strong>
             </div>
             <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
-              Click <strong>"Load unpacked"</strong> (top-left) and select this exact folder:
+              Click <strong>"Load unpacked"</strong> and select extracted folder or local path:
             </p>
             <code style={{ display: "block", background: "#f1f5f9", padding: "6px 8px", borderRadius: "6px", fontSize: "11px", marginTop: "6px", fontFamily: "var(--mono)", wordBreak: "break-all" }}>
-              {extensionPath}
+              {extensionPath} (or your unzipped folder)
             </code>
           </div>
 

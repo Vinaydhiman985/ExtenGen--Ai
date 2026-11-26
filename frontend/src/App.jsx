@@ -94,7 +94,7 @@ function Hero({ onOpenDashboard }) {
       <div className="hero-in">
         <h1>Your agent forgot.<br />ExtenGen didn't.</h1>
         <p>ExtenGen is a lightweight, self-hostable memory layer that saves what your team decides and feeds it back into every future agent prompt.</p>
-        <div className="row">
+        <div className="row" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
           <button
             className="pill white big"
             onClick={onOpenDashboard}
@@ -102,6 +102,15 @@ function Hero({ onOpenDashboard }) {
           >
             Open Dashboard
           </button>
+          <a
+            className="pill ghost big"
+            href="/extengen-extension.zip"
+            download="extengen-extension.zip"
+            style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}
+          >
+            <img src="/icons/icon-32.png" width="18" height="18" style={{ borderRadius: "4px" }} alt="" />
+            Add Extension (.zip)
+          </a>
           <a className="pill ghost big" href="#how">See how it works</a>
         </div>
       </div>

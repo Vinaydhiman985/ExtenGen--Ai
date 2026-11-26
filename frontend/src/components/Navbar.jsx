@@ -167,16 +167,10 @@ export function Navbar({
           className="dash-pill dash-pill-white dash-pill-sm"
           onClick={() => (onSelectSection ? onSelectSection("extension") : onOpenOnboarding())}
           style={{ display: "flex", alignItems: "center", gap: "6px" }}
-          title="Open Chrome Extension Bridge setup & live testing"
+          title="Install Chrome Extension & Bridge Setup"
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <circle cx="12" cy="12" r="4"/>
-            <line x1="21.17" y1="8" x2="12" y2="8"/>
-            <line x1="3.95" y1="6.06" x2="8.54" y2="14"/>
-            <line x1="10.88" y1="21.94" x2="15.46" y2="14"/>
-          </svg>
-          <span>Chrome Extension</span>
+          <img src="/icons/icon-32.png" width="14" height="14" style={{ borderRadius: "3px" }} alt="ExtenGen" />
+          <span>Add Extension</span>
         </button>
 
         {/* Connect Agent */}
